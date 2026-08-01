@@ -65,6 +65,7 @@ public partial class MainWindow : Window
         IEzStateService ezStateService = new EzStateService(_memoryService);
         IChrInsService chrInsService = new ChrInsService(_memoryService);
         ISaveManagerService saveManagerService = new SaveManagerService();
+        IWindowService windowService = new WindowService(_memoryService);
 
 
         PlayerViewModel playerViewModel = new PlayerViewModel(_playerService, _hotkeyManager, _stateService);
@@ -76,13 +77,14 @@ public partial class MainWindow : Window
             new TargetViewModel(_stateService, _hotkeyManager, targetService, debugDrawService, _playerService);
         UtilityViewModel utilityViewModel =
             new UtilityViewModel(utilityService, _stateService, _hotkeyManager, debugDrawService, playerViewModel,
-                ezStateService);
+                ezStateService, windowService);
         ItemViewModel itemViewModel = new ItemViewModel(itemService, _stateService);
         EventViewModel eventViewModel =
             new EventViewModel(eventService, _stateService, debugDrawService, itemService, _hotkeyManager);
         var activateOnLaunchManager = new ActivateOnLaunchManager();
         ActivateOnLaunchViewModel activateOnLaunchViewModel = new ActivateOnLaunchViewModel(playerViewModel,
-            targetViewModel, eventViewModel, travelViewModel, enemyViewModel, activateOnLaunchManager, _stateService);
+            targetViewModel, eventViewModel, travelViewModel, enemyViewModel, utilityViewModel,
+            activateOnLaunchManager, _stateService);
         SaveManagerViewModel saveManagerViewModel =
             new SaveManagerViewModel(saveManagerService, _stateService, _hotkeyManager);
         SettingsViewModel settingsViewModel = new SettingsViewModel(settingsService, _stateService, _hotkeyManager,

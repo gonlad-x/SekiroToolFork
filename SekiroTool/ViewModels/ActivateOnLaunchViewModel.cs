@@ -12,17 +12,20 @@ public class ActivateOnLaunchViewModel : BaseViewModel
     private readonly EventViewModel _eventViewModel;
     private readonly TravelViewModel _travelViewModel;
     private readonly EnemyViewModel _enemyViewModel;
+    private readonly UtilityViewModel _utilityViewModel;
     private readonly ActivateOnLaunchManager _aol;
 
     public ActivateOnLaunchViewModel(PlayerViewModel playerViewModel, TargetViewModel targetViewModel,
         EventViewModel eventViewModel, TravelViewModel travelViewModel, EnemyViewModel enemyViewModel,
-        ActivateOnLaunchManager activateOnLaunchManager, IStateService stateService)
+        UtilityViewModel utilityViewModel, ActivateOnLaunchManager activateOnLaunchManager,
+        IStateService stateService)
     {
         _playerViewModel = playerViewModel;
         _targetViewModel = targetViewModel;
         _eventViewModel = eventViewModel;
         _travelViewModel = travelViewModel;
         _enemyViewModel = enemyViewModel;
+        _utilityViewModel = utilityViewModel;
         _aol = activateOnLaunchManager;
 
         RegisterActions();
@@ -268,6 +271,18 @@ public class ActivateOnLaunchViewModel : BaseViewModel
         }
     }
 
+    // Utility
+    private bool _isBorderlessChecked;
+
+    public bool IsBorderlessChecked
+    {
+        get => _isBorderlessChecked;
+        set
+        {
+            if (SetProperty(ref _isBorderlessChecked, value)) Set(nameof(IsBorderlessChecked), value);
+        }
+    }
+
     // Travel
     private bool _isUnlockIdolsChecked;
 
@@ -373,6 +388,8 @@ public class ActivateOnLaunchViewModel : BaseViewModel
         _isNoButterflySummonsChecked = Get(nameof(IsNoButterflySummonsChecked));
         _isSnakeIntroLoopChecked = Get(nameof(IsSnakeIntroLoopChecked));
 
+        _isBorderlessChecked = Get(nameof(IsBorderlessChecked));
+
         _isUnlockIdolsChecked = Get(nameof(IsUnlockIdolsChecked));
 
         _isSetMaxHpChecked = Get(nameof(IsSetMaxHpChecked));
@@ -411,9 +428,12 @@ public class ActivateOnLaunchViewModel : BaseViewModel
 
     private void OnGameAttached()
     {
-        // No attach-gated Activate On Launch options for Sekiro yet (e.g. TarnishedTool's launch FPS);
-        // kept for lifecycle parity with the other tools.
         if (!IsEnabled) return;
+
+        // Borderless belongs here rather than OnGameLoaded: it only needs the game's window to exist, not a
+        // loaded character, so it applies as soon as the tool detects the game. UtilityViewModel subscribes to
+        // State.Attached too and this runs after it, so its IsGameAttached gate is already set.
+        if (IsBorderlessChecked) _utilityViewModel.IsBorderlessEnabled = true;
     }
 
     private void OnGameLoaded()

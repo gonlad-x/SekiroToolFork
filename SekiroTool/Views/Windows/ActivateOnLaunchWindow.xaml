@@ -158,6 +158,16 @@
                             <CheckBox Content="No Butterfly Summons" Margin="0,0,0,4" IsChecked="{Binding IsNoButterflySummonsChecked}" IsEnabled="{Binding IsEnabled}" />
                             <CheckBox Content="Snake Intro Loop" Margin="0,0,0,4" IsChecked="{Binding IsSnakeIntroLoopChecked}" IsEnabled="{Binding IsEnabled}" />
 
+                            <!-- Utility -->
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Utility" Style="{StaticResource SectionHeaderStyle}" Margin="0,14,0,6" />
+                                <Border Style="{StaticResource InfoBubbleStyle}" Margin="5,10,0,0"
+                                        ToolTip="Applied as soon as the tool attaches to the game, not on character load.">
+                                    <TextBlock Style="{StaticResource InfoBubbleTextStyle}" />
+                                </Border>
+                            </StackPanel>
+                            <CheckBox Content="Borderless Window" Margin="0,0,0,4" IsChecked="{Binding IsBorderlessChecked}" IsEnabled="{Binding IsEnabled}" />
+
                             <!-- Travel -->
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Travel" Style="{StaticResource SectionHeaderStyle}" Margin="0,14,0,6" />

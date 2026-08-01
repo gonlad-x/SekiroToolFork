@@ -19,6 +19,7 @@ public class UtilityViewModel : BaseViewModel
     private readonly IDebugDrawService _debugDrawService;
     private readonly PlayerViewModel _playerViewModel;
     private readonly IEzStateService _ezStateService;
+    private readonly IWindowService _windowService;
 
     private bool _wasNoDeathEnabled;
     private bool _wasNoDeathEnabledWithoutKillbox;
@@ -26,19 +27,24 @@ public class UtilityViewModel : BaseViewModel
 
     public UtilityViewModel(IUtilityService utilityService, IStateService stateService,
         HotkeyManager hotkeyManager, IDebugDrawService debugDrawService, PlayerViewModel playerViewModel,
-        IEzStateService ezStateService)
+        IEzStateService ezStateService, IWindowService windowService)
     {
         _utilityService = utilityService;
         _hotkeyManager = hotkeyManager;
         _debugDrawService = debugDrawService;
         _playerViewModel = playerViewModel;
         _ezStateService = ezStateService;
+        _windowService = windowService;
 
         RegisterHotkeys();
 
         stateService.Subscribe(State.Loaded, OnGameLoaded);
         stateService.Subscribe(State.NotLoaded, OnGameNotLoaded);
         stateService.Subscribe(State.Detached, OnGameDetached);
+
+        // Borderless only needs the process attached, not a loaded character, so it has its own gate rather
+        // than riding on AreOptionsEnabled.
+        stateService.Subscribe(State.Attached, OnGameAttached);
 
 
         MoveCamToPlayerCommand = new DelegateCommand(MoveCamToPlayer);
@@ -94,6 +100,40 @@ public class UtilityViewModel : BaseViewModel
     {
         get => _areOptionsEnabled;
         set => SetProperty(ref _areOptionsEnabled, value);
+    }
+
+    // No initializer: the correct state before the game is ever attached is false.
+    private bool _isGameAttached;
+
+    public bool IsGameAttached
+    {
+        get => _isGameAttached;
+        private set => SetProperty(ref _isGameAttached, value);
+    }
+
+    private bool _isBorderlessEnabled;
+
+    public bool IsBorderlessEnabled
+    {
+        get => _isBorderlessEnabled;
+        set
+        {
+            if (!SetProperty(ref _isBorderlessEnabled, value)) return;
+
+            if (value)
+            {
+                if (_windowService.EnableBorderless(out var reason)) return;
+
+                // Couldn't apply it - put the checkbox back rather than leave it claiming a state the window
+                // isn't in, and say why.
+                _isBorderlessEnabled = false;
+                OnPropertyChanged(nameof(IsBorderlessEnabled));
+                if (!string.IsNullOrEmpty(reason)) MsgBox.Show(reason);
+                return;
+            }
+
+            _windowService.DisableBorderless();
+        }
     }
 
     private bool _isHitboxViewEnabled;
@@ -437,6 +477,19 @@ public class UtilityViewModel : BaseViewModel
     private void OnGameDetached()
     {
         _wasNoDeathEnabled = false;
+        IsGameAttached = false;
+        // The window is gone with the process; drop the toggle so it doesn't claim to still be applied.
+        _isBorderlessEnabled = false;
+        OnPropertyChanged(nameof(IsBorderlessEnabled));
+    }
+
+    private void OnGameAttached()
+    {
+        IsGameAttached = true;
+        // Reflect what the window actually looks like - the game may already be borderless from a previous
+        // session, or from another tool.
+        _isBorderlessEnabled = _windowService.IsBorderless();
+        OnPropertyChanged(nameof(IsBorderlessEnabled));
     }
 
     private void ToggleGameSpeed()

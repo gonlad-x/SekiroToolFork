@@ -374,5 +374,39 @@
                 </TabControl>
             </Border>
         </Grid>
+        <!-- Row 4 is the fill row, so this needs VerticalAlignment=Top to keep its natural height. -->
+        <Border Grid.Row="4"
+                BorderThickness="1"
+                BorderBrush="#333"
+                CornerRadius="3"
+                VerticalAlignment="Top"
+                Margin="0,5,0,0">
+            <StackPanel Margin="10">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="Game Window" FontWeight="Bold" />
+
+                    <Border Background="#3498db"
+                            CornerRadius="10"
+                            Width="12"
+                            Height="12"
+                            Margin="10,0,0,0"
+                            VerticalAlignment="Center"
+                            ToolTip="Removes the game window's border, keeping its current resolution and position. Exit fullscreen in the game's display settings first."
+                            ToolTipService.InitialShowDelay='100'>
+                        <TextBlock Text="i"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontWeight="Bold"
+                                   FontSize="10" />
+                    </Border>
+                </StackPanel>
+
+                <CheckBox Content="Borderless Window"
+                          IsChecked="{Binding IsBorderlessEnabled}"
+                          IsEnabled="{Binding IsGameAttached}"
+                          Margin="10,0,0,0" />
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>
