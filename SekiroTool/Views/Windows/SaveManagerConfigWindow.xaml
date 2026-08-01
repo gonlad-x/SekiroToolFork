@@ -1,0 +1,126 @@
+<Window x:Class="SekiroTool.Views.Windows.SaveManagerConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        mc:Ignorable="d"
+        Title="Configure Save Manager"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Width="400"
+        SizeToContent="Height"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Border Background="{StaticResource BackgroundBrush}" Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.5" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    Background="{StaticResource TitleBarBrush}"
+                    MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Configure Save Manager"
+                               Grid.Column="0"
+                               Foreground="White"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Margin="10,0,0,0" />
+
+                    <Button Content="✕"
+                            Grid.Column="1"
+                            Width="30"
+                            Height="30"
+                            Click="CloseButton_Click">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#E81123" />
+                                        <Setter Property="Foreground" Value="White" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1"
+                    BorderThickness="1"
+                    BorderBrush="#333"
+                    CornerRadius="3"
+                    Margin="15"
+                    Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="Savefile:"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
+                    <TextBox Grid.Row="0" Grid.Column="1"
+                             Text="{Binding SaveFileLocation, Mode=OneWay}"
+                             IsReadOnly="True"
+                             VerticalAlignment="Center"
+                             Margin="0,0,5,0"
+                             ToolTip="{Binding SaveFileLocation}" />
+                    <Button Grid.Row="0" Grid.Column="2"
+                            Content="Browse"
+                            Command="{Binding BrowseSaveFileCommand}"
+                            Padding="8,2" />
+
+                    <TextBlock Grid.Row="1" Grid.Column="0"
+                               Text="Profiles:"
+                               VerticalAlignment="Center"
+                               Margin="0,8,8,0" />
+                    <TextBox Grid.Row="1" Grid.Column="1"
+                             Text="{Binding ProfilesDirectory, Mode=OneWay}"
+                             IsReadOnly="True"
+                             VerticalAlignment="Center"
+                             Margin="0,8,5,0"
+                             ToolTip="{Binding ProfilesDirectory}" />
+                    <Button Grid.Row="1" Grid.Column="2"
+                            Content="Browse"
+                            Command="{Binding BrowseProfilesCommand}"
+                            Margin="0,8,0,0"
+                            Padding="8,2" />
+                </Grid>
+            </Border>
+
+            <!-- Paths are already saved as soon as they're picked, so this just dismisses the window. -->
+            <Button Grid.Row="2"
+                    Content="Confirm"
+                    Click="ConfirmButton_Click"
+                    IsDefault="True"
+                    HorizontalAlignment="Right"
+                    Width="90"
+                    Height="26"
+                    Margin="0,0,15,15" />
+        </Grid>
+    </Border>
+</Window>

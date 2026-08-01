@@ -64,6 +64,7 @@ public partial class MainWindow : Window
         ISettingsService settingsService = new SettingsService(_memoryService, _nopManager, hookManager);
         IEzStateService ezStateService = new EzStateService(_memoryService);
         IChrInsService chrInsService = new ChrInsService(_memoryService);
+        ISaveManagerService saveManagerService = new SaveManagerService();
 
 
         PlayerViewModel playerViewModel = new PlayerViewModel(_playerService, _hotkeyManager, _stateService);
@@ -82,8 +83,10 @@ public partial class MainWindow : Window
         var activateOnLaunchManager = new ActivateOnLaunchManager();
         ActivateOnLaunchViewModel activateOnLaunchViewModel = new ActivateOnLaunchViewModel(playerViewModel,
             targetViewModel, eventViewModel, travelViewModel, enemyViewModel, activateOnLaunchManager, _stateService);
+        SaveManagerViewModel saveManagerViewModel =
+            new SaveManagerViewModel(saveManagerService, _stateService, _hotkeyManager);
         SettingsViewModel settingsViewModel = new SettingsViewModel(settingsService, _stateService, _hotkeyManager,
-            activateOnLaunchViewModel);
+            activateOnLaunchViewModel, saveManagerViewModel);
 
         var playerTab = new PlayerTab(playerViewModel);
         var travelTab = new TravelTab(travelViewModel);
@@ -92,6 +95,7 @@ public partial class MainWindow : Window
         var utilityTab = new UtilityTab(utilityViewModel);
         var itemTab = new ItemTab(itemViewModel);
         var eventTab = new EventTab(eventViewModel);
+        var saveManagerTab = new SaveManagerTab(saveManagerViewModel);
         var settingsTab = new SettingsTab(settingsViewModel);
 
         MainTabControl.Items.Add(new TabItem { Header = "Player", Content = playerTab });
@@ -101,6 +105,7 @@ public partial class MainWindow : Window
         MainTabControl.Items.Add(new TabItem { Header = "Utility", Content = utilityTab });
         MainTabControl.Items.Add(new TabItem { Header = "Items", Content = itemTab });
         MainTabControl.Items.Add(new TabItem { Header = "Event", Content = eventTab });
+        MainTabControl.Items.Add(new TabItem { Header = "Saves", Content = saveManagerTab });
         MainTabControl.Items.Add(new TabItem { Header = "Settings", Content = settingsTab });
 
         MainTabControl.SelectionChanged += MainTabControl_SelectionChanged;

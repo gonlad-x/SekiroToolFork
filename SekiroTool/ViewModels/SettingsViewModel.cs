@@ -18,6 +18,8 @@ public class SettingsViewModel : BaseViewModel
     private readonly HotkeyManager _hotkeyManager;
     private readonly ActivateOnLaunchViewModel _activateOnLaunchViewModel;
     private ActivateOnLaunchWindow _activateOnLaunchWindow;
+    private readonly SaveManagerViewModel _saveManagerViewModel;
+    private SaveManagerConfigWindow _saveManagerConfigWindow;
 
     private readonly Dictionary<string, HotkeyBindingViewModel> _hotkeyLookup;
 
@@ -28,11 +30,13 @@ public class SettingsViewModel : BaseViewModel
     public SearchableGroupedCollection<string, HotkeyBindingViewModel> Hotkeys { get; }
 
     public SettingsViewModel(ISettingsService settingsService, IStateService stateService,
-        HotkeyManager hotkeyManager, ActivateOnLaunchViewModel activateOnLaunchViewModel)
+        HotkeyManager hotkeyManager, ActivateOnLaunchViewModel activateOnLaunchViewModel,
+        SaveManagerViewModel saveManagerViewModel)
     {
         _settingsService = settingsService;
         _hotkeyManager = hotkeyManager;
         _activateOnLaunchViewModel = activateOnLaunchViewModel;
+        _saveManagerViewModel = saveManagerViewModel;
 
         stateService.Subscribe(State.Attached, OnGameAttached);
         stateService.Subscribe(State.EarlyAttached, OnGameEarlyAttached);
@@ -135,6 +139,15 @@ public class SettingsViewModel : BaseViewModel
                 new("Skip Geni 2 (Armor)", HotkeyActions.Geni2Skip),
                 new("Skip Emma", HotkeyActions.EmmaSkip)
             ],
+            ["Saves"] =
+            [
+                // Kept short: HotkeyItemTemplate gives the label a fixed 130px and hard-clips anything longer.
+                new("Load Savestate", HotkeyActions.LoadSavestate),
+                new("Import Savestate", HotkeyActions.ImportSavestate),
+                new("Toggle Read-Only", HotkeyActions.ToggleSaveReadOnly),
+                new("Previous Savestate", HotkeyActions.PreviousSavestate),
+                new("Next Savestate", HotkeyActions.NextSavestate),
+            ],
         };
 
         Hotkeys = new SearchableGroupedCollection<string, HotkeyBindingViewModel>(
@@ -147,6 +160,7 @@ public class SettingsViewModel : BaseViewModel
         
         ClearHotkeysCommand = new DelegateCommand(ClearHotkeys);
         OpenActivateOnLaunchCommand = new DelegateCommand(OpenActivateOnLaunch);
+        OpenSaveManagerConfigCommand = new DelegateCommand(OpenSaveManagerConfig);
     }
 
   
@@ -155,6 +169,7 @@ public class SettingsViewModel : BaseViewModel
 
     public ICommand ClearHotkeysCommand { get; set; }
     public ICommand OpenActivateOnLaunchCommand { get; set; }
+    public ICommand OpenSaveManagerConfigCommand { get; set; }
 
     #endregion
 
@@ -577,6 +592,23 @@ public class SettingsViewModel : BaseViewModel
 
         _activateOnLaunchWindow.Closed += (_, _) => _activateOnLaunchWindow = null;
         _activateOnLaunchWindow.ShowDialog();
+    }
+
+    private void OpenSaveManagerConfig()
+    {
+        if (_saveManagerConfigWindow != null && _saveManagerConfigWindow.IsVisible)
+        {
+            _saveManagerConfigWindow.Activate();
+            return;
+        }
+
+        _saveManagerConfigWindow = new SaveManagerConfigWindow(_saveManagerViewModel)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        _saveManagerConfigWindow.Closed += (_, _) => _saveManagerConfigWindow = null;
+        _saveManagerConfigWindow.ShowDialog();
     }
 
     #endregion

@@ -89,5 +89,11 @@ public enum HotkeyActions
     NoKurosCharmOn,
     NoKurosCharmOff,
 
-    SetNewGame7
+    SetNewGame7,
+
+    LoadSavestate,
+    ImportSavestate,
+    ToggleSaveReadOnly,
+    PreviousSavestate,
+    NextSavestate
 }

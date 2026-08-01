@@ -48,6 +48,11 @@
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
     </ItemGroup>
     <ItemGroup>
+      <!-- Only for FolderBrowserDialog: WPF/net48 has no folder picker of its own. -->
+      <Reference Include="System.Windows.Forms" />
+    </ItemGroup>
+
+    <ItemGroup>
       <None Remove="Assets\icon.ico" />
       <Resource Include="Assets\icon.ico" />
     </ItemGroup>
