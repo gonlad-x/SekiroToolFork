@@ -11,8 +11,13 @@
     <UserControl.Resources>
         <DataTemplate x:Key="HotkeyItemTemplate">
             <StackPanel Orientation="Horizontal" Margin="0,5">
+                <!-- The 130px label can't fit the longest action names in a 2-column grid at this window width,
+                     so trim with an ellipsis and expose the full name on hover instead of hard-cutting it. -->
                 <TextBlock Text="{Binding DisplayName}"
                            Width="130"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding DisplayName}"
+                           ToolTipService.InitialShowDelay="100"
                            VerticalAlignment="Center" />
                 <TextBox Text="{Binding HotkeyText}"
 
