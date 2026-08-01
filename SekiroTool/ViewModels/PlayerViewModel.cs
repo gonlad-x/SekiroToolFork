@@ -621,7 +621,7 @@ public class PlayerViewModel : BaseViewModel
 
         if (IsNoGoodsConsumeEnabled) _playerService.TogglePlayerNoGoodsConsume(true);
 
-        if (IsNoEmblemConsumeEnabled) _playerService.TogglePlayerNoGoodsConsume(true);
+        if (IsNoEmblemConsumeEnabled) _playerService.TogglePlayerNoEmblemsConsume(true);
 
         if (IsNoRevivalConsumeEnabled) _playerService.TogglePlayerNoRevivalConsume(true);
 
