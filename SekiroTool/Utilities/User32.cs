@@ -29,6 +29,8 @@ public class User32
     public const uint WsPopup = 0x80000000;
     public const uint WsExTopmost = 0x00000008;
 
+    public const uint MonitorDefaultToNearest = 0x00000002;
+
     [StructLayout(LayoutKind.Sequential)]
     public struct Rect
     {
@@ -39,6 +41,20 @@ public class User32
 
         public int Width => Right - Left;
         public int Height => Bottom - Top;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MonitorInfo
+    {
+        public int cbSize;
+
+        /// <summary>Full monitor bounds, including the area behind the taskbar.</summary>
+        public Rect rcMonitor;
+
+        /// <summary>Work area, i.e. excluding the taskbar.</summary>
+        public Rect rcWork;
+
+        public uint dwFlags;
     }
 
     [DllImport("user32.dll")]
@@ -63,7 +79,28 @@ public class User32
     public static extern bool GetWindowRect(IntPtr hWnd, out Rect lpRect);
 
     [DllImport("user32.dll")]
-    public static extern bool GetClientRect(IntPtr hWnd, out Rect lpRect);
+    public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    public static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfo lpmi);
+
+    /// <summary>
+    /// Full bounds of the monitor a window is on, in physical pixels. Physical is what SetWindowPos wants, and
+    /// reading it from the monitor rather than WPF's SystemParameters sidesteps DPI scaling entirely.
+    /// </summary>
+    public static bool TryGetMonitorBounds(IntPtr hWnd, out Rect bounds)
+    {
+        bounds = default;
+
+        var monitor = MonitorFromWindow(hWnd, MonitorDefaultToNearest);
+        if (monitor == IntPtr.Zero) return false;
+
+        var info = new MonitorInfo { cbSize = Marshal.SizeOf(typeof(MonitorInfo)) };
+        if (!GetMonitorInfo(monitor, ref info)) return false;
+
+        bounds = info.rcMonitor;
+        return bounds.Width > 0 && bounds.Height > 0;
+    }
 
     public static void SetTopmost(IntPtr hwnd)
     {

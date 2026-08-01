@@ -9,9 +9,11 @@ namespace SekiroTool.Services;
 /// most of the tool it can't corrupt game state or crash on unresolved offsets.
 /// <para>
 /// Approach taken from SekiroFpsUnlockAndMore (MIT, github.com/uberhalit/SekiroFpsUnlockAndMore), which does the
-/// same thing by flipping WS_POPUP on the game's window. One deliberate difference: that tool reads the game's
-/// render resolution out of memory via an AOB-scanned offset to size the borderless window, whereas GetClientRect
-/// returns the same dimensions straight from Win32 - no pattern to maintain and nothing to break on a game patch.
+/// same thing by flipping WS_POPUP on the game's window. Two deliberate differences: the window is snapped to the
+/// full monitor bounds (that tool's separate "fullscreen stretch" option) because otherwise Windows keeps drawing
+/// the taskbar over it, and the monitor rect comes from GetMonitorInfo rather than reading the game's render
+/// resolution out of memory via an AOB-scanned offset - no pattern to maintain, no DPI conversion, and nothing to
+/// break on a game patch.
 /// </para>
 /// </summary>
 public class WindowService(IMemoryService memoryService) : IWindowService
@@ -66,17 +68,19 @@ public class WindowService(IMemoryService memoryService) : IWindowService
         // Capture the bordered rect first - it's the only record of where to put the window back.
         if (User32.GetWindowRect(hWnd, out var windowRect)) _restoreRect = windowRect;
 
-        // A WS_POPUP window has no non-client area, so sizing it to the old client area keeps the rendered
-        // image exactly the same size rather than growing it by the border/caption thickness.
-        if (!User32.GetClientRect(hWnd, out var clientRect) || clientRect.Width <= 0 || clientRect.Height <= 0)
+        // Snap to the full bounds of whichever monitor the game is on. This is what makes the taskbar disappear:
+        // Windows only treats a window as fullscreen (and lets it cover the always-on-top taskbar) when it
+        // exactly covers the monitor. Sizing to the game's own client area instead leaves the taskbar drawn on
+        // top, which is correct-but-useless for a borderless mode.
+        if (!User32.TryGetMonitorBounds(hWnd, out var monitor))
         {
-            failureReason = "Couldn't read the game window's size.";
+            failureReason = "Couldn't determine which monitor the game is on.";
             return false;
         }
 
         User32.SetWindowLongPtr(hWnd, User32.GwlStyle, new IntPtr(BorderlessStyle));
-        User32.SetWindowPos(hWnd, User32.HwndTop, windowRect.Left, windowRect.Top,
-            clientRect.Width, clientRect.Height, User32.SwpFramechanged | User32.SwpShowwindow);
+        User32.SetWindowPos(hWnd, User32.HwndTop, monitor.Left, monitor.Top,
+            monitor.Width, monitor.Height, User32.SwpFramechanged | User32.SwpShowwindow);
 
         return true;
     }
