@@ -16,9 +16,9 @@
         AllowsTransparency="True"
         Background="Transparent"
         >
-    <Border Background="#2D2D30" 
-            BorderBrush="#007ACC" 
-            BorderThickness="1" 
+    <Border Background="{StaticResource BackgroundBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1"
             CornerRadius="4"
             Margin="10">
         <Border.Effect>
@@ -32,8 +32,8 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
-            <Border Grid.Row="0" 
-                    Background="#007ACC" 
+            <Border Grid.Row="0"
+                    Background="{StaticResource TitleBarBrush}"
                     CornerRadius="3,3,0,0"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <TextBlock Text="Message" 
@@ -42,9 +42,9 @@
                            Margin="10,6"/>
             </Border>
             
-            <TextBlock x:Name="MessageText" 
-                       Grid.Row="1" 
-                       Foreground="#F1F1F1"
+            <TextBlock x:Name="MessageText"
+                       Grid.Row="1"
+                       Foreground="{StaticResource TextBrush}"
                        TextWrapping="Wrap"
                        Margin="15"
                        VerticalAlignment="Center"/>
