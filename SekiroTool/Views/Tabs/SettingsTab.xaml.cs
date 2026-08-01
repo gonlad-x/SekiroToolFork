@@ -9,13 +9,11 @@ namespace SekiroTool.Views.Tabs;
 public partial class SettingsTab : UserControl
 {
     private readonly SettingsViewModel _settingsViewModel;
-    private readonly StartupViewModel _startupViewModel;
 
-    public SettingsTab(SettingsViewModel settingsViewModel, StartupViewModel startupViewModel)
+    public SettingsTab(SettingsViewModel settingsViewModel)
     {
         DataContext = settingsViewModel;
         _settingsViewModel = settingsViewModel;
-        _startupViewModel = startupViewModel;
         InitializeComponent();
     }
     
@@ -44,15 +42,6 @@ public partial class SettingsTab : UserControl
     private void CustomizeOverlayButton_Click(object sender, RoutedEventArgs e)
     {
         var window = new OverlayCustomizationWindow
-        {
-            Owner = Window.GetWindow(this)
-        };
-        window.ShowDialog();
-    }
-
-    private void ActivateOnLaunchButton_Click(object sender, RoutedEventArgs e)
-    {
-        var window = new StartupOptionsWindow(_startupViewModel)
         {
             Owner = Window.GetWindow(this)
         };

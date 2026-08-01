@@ -135,7 +135,7 @@
                     </Border>
 
                     <Button Content="Activate On Launch"
-                            Click="ActivateOnLaunchButton_Click"
+                            Command="{Binding OpenActivateOnLaunchCommand}"
                             Margin="10,0,0,0"
                             Padding="6,2" />
                     <Border

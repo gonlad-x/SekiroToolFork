@@ -709,7 +709,7 @@ public class PlayerViewModel : BaseViewModel
     // fraction of that (the "near-death" opening), shortly after spawn. Wait for
     // that reduction to actually land (CurrentHp < MaxHp, both valid) instead of
     // guessing a fixed HP value or racing the intro script, then heal to max once.
-    private void SetMaxHpOnNewGame()
+    public void SetMaxHpOnNewGame()
     {
         Task.Run(async () =>
         {
@@ -731,7 +731,7 @@ public class PlayerViewModel : BaseViewModel
         });
     }
 
-    private void SetNewGame7OnNewGame()
+    public void SetNewGame7OnNewGame()
     {
         _playerService.SetNewGame(7);
         NewGame = _playerService.GetNewGame();

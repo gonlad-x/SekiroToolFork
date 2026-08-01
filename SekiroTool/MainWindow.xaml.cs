@@ -79,8 +79,11 @@ public partial class MainWindow : Window
         ItemViewModel itemViewModel = new ItemViewModel(itemService, _stateService);
         EventViewModel eventViewModel =
             new EventViewModel(eventService, _stateService, debugDrawService, itemService, _hotkeyManager);
-        StartupViewModel startupViewModel = new StartupViewModel(_hotkeyManager, _stateService);
-        SettingsViewModel settingsViewModel = new SettingsViewModel(settingsService, _stateService, _hotkeyManager);
+        var activateOnLaunchManager = new ActivateOnLaunchManager();
+        ActivateOnLaunchViewModel activateOnLaunchViewModel = new ActivateOnLaunchViewModel(playerViewModel,
+            targetViewModel, eventViewModel, travelViewModel, enemyViewModel, activateOnLaunchManager, _stateService);
+        SettingsViewModel settingsViewModel = new SettingsViewModel(settingsService, _stateService, _hotkeyManager,
+            activateOnLaunchViewModel);
 
         var playerTab = new PlayerTab(playerViewModel);
         var travelTab = new TravelTab(travelViewModel);
@@ -89,7 +92,7 @@ public partial class MainWindow : Window
         var utilityTab = new UtilityTab(utilityViewModel);
         var itemTab = new ItemTab(itemViewModel);
         var eventTab = new EventTab(eventViewModel);
-        var settingsTab = new SettingsTab(settingsViewModel, startupViewModel);
+        var settingsTab = new SettingsTab(settingsViewModel);
 
         MainTabControl.Items.Add(new TabItem { Header = "Player", Content = playerTab });
         MainTabControl.Items.Add(new TabItem { Header = "Travel", Content = travelTab });
@@ -103,6 +106,8 @@ public partial class MainWindow : Window
         MainTabControl.SelectionChanged += MainTabControl_SelectionChanged;
 
         settingsViewModel.ApplyStartUpOptions();
+
+        _stateService.Publish(State.AppStart);
 
         Closing += MainWindow_Closing;
 

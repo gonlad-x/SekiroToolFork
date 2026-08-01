@@ -4,9 +4,9 @@ using SekiroTool.ViewModels;
 
 namespace SekiroTool.Views.Windows;
 
-public partial class StartupOptionsWindow : Window
+public partial class ActivateOnLaunchWindow : Window
 {
-    public StartupOptionsWindow(StartupViewModel viewModel)
+    public ActivateOnLaunchWindow(ActivateOnLaunchViewModel viewModel)
     {
         InitializeComponent();
         DataContext = viewModel;
