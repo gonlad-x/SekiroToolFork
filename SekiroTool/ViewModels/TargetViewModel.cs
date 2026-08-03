@@ -106,6 +106,10 @@ public class TargetViewModel : BaseViewModel
 
         stateService.Subscribe(State.Loaded, OnGameLoaded);
         stateService.Subscribe(State.NotLoaded, OnGameNotLoaded);
+        // The hook dies with the game process (HookManager clears its registry on Detached), so this flag has
+        // to follow it. Left true, the next State.Loaded re-prime is a no-op - SetProperty sees no change - so
+        // Target Options silently never reinstalls after a game restart.
+        stateService.Subscribe(State.Detached, () => IsTargetOptionsEnabled = false);
 
         SetHpCommand = new DelegateCommand(SetHp);
         SetHpPercentageCommand = new DelegateCommand(SetHpPercentage);
