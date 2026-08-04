@@ -319,14 +319,13 @@ public partial class MainWindow : Window
     {
         var isActive = _runModeService.IsActive;
 
+        // Disable the tab's content, not the TabItem: a disabled TabItem cannot be selected at all,
+        // so the tabs stay browsable and only their contents grey out.
         foreach (var item in MainTabControl.Items)
         {
             if (item is not TabItem tab || !RunModeLockedTabs.Contains(tab.Header?.ToString())) continue;
-            tab.IsEnabled = !isActive;
+            if (tab.Content is UIElement content) content.IsEnabled = !isActive;
         }
-
-        if (isActive && MainTabControl.SelectedItem is TabItem { IsEnabled: false })
-            MainTabControl.SelectedIndex = MainTabControl.Items.Count - 1;
 
         RunModeButton.Content = isActive ? "Stop run mode" : "Start live run mode";
         RunModeBanner.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
