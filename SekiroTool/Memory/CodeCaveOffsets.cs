@@ -77,4 +77,8 @@ public static class CodeCaveOffsets
     public const int ChrInsByEntityIdResult = 0x1750; //0x12?
     public const int EntityIdInput = 0x1780;
 
+    // Original icon id of goods row 3980, saved by ChangeIdolIcon before it overwrites it so the
+    // swap can be undone. Zero means the icon was never swapped this session.
+    public const int IdolIconBackup = 0x1800;
+
 }

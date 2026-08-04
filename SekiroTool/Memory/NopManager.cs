@@ -28,6 +28,12 @@ namespace SekiroTool.Memory
             _nopRegistry[address] = originalBytes;
         }
 
+        /// <summary>
+        /// Addresses of every currently installed nop. Lets a caller restore a subset
+        /// (see RunModeService, which keeps the nops that are legal during a run).
+        /// </summary>
+        public IReadOnlyList<long> InstalledNopKeys => _nopRegistry.Keys.ToList();
+
         public void RestoreNop(long address)
         {
             if (_nopRegistry.TryGetValue(address, out byte[] originalBytes))

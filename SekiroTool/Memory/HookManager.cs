@@ -58,6 +58,12 @@ namespace SekiroTool.Memory
             _hookRegistry.Remove(key);
         }
 
+        /// <summary>
+        /// Cave addresses of every currently installed hook. Lets a caller uninstall a subset
+        /// (see RunModeService, which keeps the hooks that are legal during a run).
+        /// </summary>
+        public IReadOnlyList<nint> InstalledHookKeys => _hookRegistry.Keys.ToList();
+
         public void ClearHooks()
         {
             _hookRegistry.Clear();

@@ -23,6 +23,14 @@ public partial class MainWindow : Window
     private readonly MemoryService _memoryService;
     private readonly IStateService _stateService;
     private readonly IPlayerService _playerService;
+    private readonly IRunModeService _runModeService;
+
+    /// <summary>
+    /// Tabs locked while Live Run Mode is active. Settings stays open (all of its options are legal
+    /// during a run) and so does Saves, which only touches the filesystem.
+    /// </summary>
+    private static readonly string[] RunModeLockedTabs =
+        ["Player", "Travel", "Enemies", "Target", "Utility", "Items", "Event"];
 
     private readonly AoBScanner _aobScanner;
     private readonly HotkeyManager _hotkeyManager;
@@ -88,6 +96,17 @@ public partial class MainWindow : Window
             new SaveManagerViewModel(saveManagerService, _stateService, _hotkeyManager);
         SettingsViewModel settingsViewModel = new SettingsViewModel(settingsService, _stateService, _hotkeyManager,
             activateOnLaunchViewModel, saveManagerViewModel);
+
+        // Built after every ViewModel on purpose: StateService.Publish iterates subscribers in
+        // subscription order, so its Loaded handler runs after the ViewModels re-apply their
+        // options and can undo them. Activate On Launch is reached through delegates so the
+        // service stays free of ViewModel references.
+        _runModeService = new RunModeService(_memoryService, hookManager, _nopManager, _playerService,
+            utilityService, reminderService, _hotkeyManager, _stateService,
+            () => activateOnLaunchViewModel.IsEnabled,
+            isEnabled => activateOnLaunchViewModel.IsEnabled = isEnabled,
+            activateOnLaunchManager.GetBool);
+        _runModeService.StateChanged += ApplyRunModeToUi;
 
         var playerTab = new PlayerTab(playerViewModel);
         var travelTab = new TravelTab(travelViewModel);
@@ -249,6 +268,57 @@ public partial class MainWindow : Window
         SettingsManager.Default.Save();
 
         if (SettingsManager.Default.BrowserOverlayEnabled) BrowserOverlayExporter.Clear();
+
+        // Without this the game keeps running with every flag set, hook installed and patch applied
+        // until the game itself is closed.
+        _runModeService.RevertGameChanges(keepLegalOptions: false);
+        _memoryService.Dispose();
+    }
+
+    private void RunModeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_runModeService.IsActive)
+        {
+            _runModeService.Stop();
+            return;
+        }
+
+        if (!_memoryService.IsAttached)
+        {
+            MsgBox.Show("Attach to the game before starting live run mode.", "Live run mode");
+            return;
+        }
+
+        var activeChanges = _runModeService.CountActiveChanges();
+        var message = activeChanges > 0
+            ? $"{activeChanges} game-modifying change(s) are active.\n\n" +
+              "Reset them and start live run mode?\n\n" +
+              "Start live run mode BEFORE loading the run's save."
+            : "Start live run mode?\n\n" +
+              "Game-modifying options will be locked and Activate On Launch suppressed.\n\n" +
+              "Start live run mode BEFORE loading the run's save.";
+
+        if (!MsgBox.ShowOkCancel(message, "Live run mode")) return;
+
+        if (!_runModeService.TryStart(out var failureReason))
+            MsgBox.Show(failureReason, "Live run mode");
+    }
+
+    private void ApplyRunModeToUi()
+    {
+        var isActive = _runModeService.IsActive;
+
+        foreach (var item in MainTabControl.Items)
+        {
+            if (item is not TabItem tab || !RunModeLockedTabs.Contains(tab.Header?.ToString())) continue;
+            tab.IsEnabled = !isActive;
+        }
+
+        if (isActive && MainTabControl.SelectedItem is TabItem { IsEnabled: false })
+            MainTabControl.SelectedIndex = MainTabControl.Items.Count - 1;
+
+        RunModeButton.Content = isActive ? "Stop live run mode" : "Start live run mode";
+        RunModeBanner.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void LaunchGame_Click(object sender, RoutedEventArgs e) => Task.Run(GameLauncher.LaunchSekiro);
