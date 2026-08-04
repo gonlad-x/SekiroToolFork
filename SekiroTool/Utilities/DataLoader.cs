@@ -1,11 +1,45 @@
 ﻿using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using SekiroTool.Models;
 
 namespace SekiroTool.Utilities;
 
 public class DataLoader
 {
+    private static string CustomWarpsPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "SekiroTool",
+        "CustomWarps.json");
+
+    public static Dictionary<string, List<CustomWarp>> LoadCustomWarps()
+    {
+        if (!File.Exists(CustomWarpsPath))
+            return new Dictionary<string, List<CustomWarp>>();
+
+        try
+        {
+            string json = File.ReadAllText(CustomWarpsPath);
+            return JsonSerializer.Deserialize<Dictionary<string, List<CustomWarp>>>(json)
+                   ?? new Dictionary<string, List<CustomWarp>>();
+        }
+        catch
+        {
+            return new Dictionary<string, List<CustomWarp>>();
+        }
+    }
+
+    public static void SaveCustomWarps(Dictionary<string, List<CustomWarp>> warps)
+    {
+        string directory = Path.GetDirectoryName(CustomWarpsPath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            Directory.CreateDirectory(directory);
+
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        string json = JsonSerializer.Serialize(warps, options);
+        File.WriteAllText(CustomWarpsPath, json);
+    }
+
     public static Dictionary<string, List<Warp>> GetWarpLocations()
     {
         Dictionary<string, List<Warp>> warpDict = new Dictionary<string, List<Warp>>();

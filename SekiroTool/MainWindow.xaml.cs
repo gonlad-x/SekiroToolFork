@@ -70,7 +70,7 @@ public partial class MainWindow : Window
 
         PlayerViewModel playerViewModel = new PlayerViewModel(_playerService, _hotkeyManager, _stateService);
         TravelViewModel travelViewModel =
-            new TravelViewModel(travelService, _stateService, _hotkeyManager, eventService);
+            new TravelViewModel(travelService, _stateService, _hotkeyManager, eventService, _playerService);
         EnemyViewModel enemyViewModel = new EnemyViewModel(enemyService, _hotkeyManager, _stateService,
             debugDrawService, eventService, chrInsService);
         TargetViewModel targetViewModel =

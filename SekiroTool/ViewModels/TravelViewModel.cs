@@ -5,6 +5,7 @@ using SekiroTool.Enums;
 using SekiroTool.Interfaces;
 using SekiroTool.Models;
 using SekiroTool.Utilities;
+using SekiroTool.Views.Windows;
 
 namespace SekiroTool.ViewModels;
 
@@ -13,13 +14,15 @@ public class TravelViewModel : BaseViewModel
     private readonly ITravelService _travelService;
     private readonly HotkeyManager _hotkeyManager;
     private readonly IEventService _eventService;
+    private readonly IPlayerService _playerService;
 
     public TravelViewModel(ITravelService travelService, IStateService stateService,
-        HotkeyManager hotkeyManager, IEventService eventService)
+        HotkeyManager hotkeyManager, IEventService eventService, IPlayerService playerService)
     {
         _travelService = travelService;
         _hotkeyManager = hotkeyManager;
         _eventService = eventService;
+        _playerService = playerService;
         
         RegisterHotkeys();
 
@@ -28,11 +31,16 @@ public class TravelViewModel : BaseViewModel
         
         _mainAreas = new ObservableCollection<string>();
         _warpLocations = new ObservableCollection<Warp>();
+        _customMainAreas = new ObservableCollection<string>();
+        _customWarpLocations = new ObservableCollection<CustomWarp>();
         
         WarpCommand = new DelegateCommand(Warp);
         UnlockIdolsCommand = new DelegateCommand(UnlockIdols);
+        CustomWarpCommand = new DelegateCommand(CustomWarp);
+        OpenCreateCustomWarpCommand = new DelegateCommand(OpenCreateCustomWarp);
         
         LoadWarps();
+        LoadCustomWarps();
         
 
         idolEventIds = DataLoader.GetIdolEventIds();
@@ -45,6 +53,9 @@ public class TravelViewModel : BaseViewModel
     private string _preSearchMainArea;
     private readonly ObservableCollection<Warp> _searchResultsCollection = new ObservableCollection<Warp>();
     private List<long> idolEventIds;
+
+    private Dictionary<string, List<CustomWarp>> _customWarpDict;
+    private string _preSearchCustomMainArea;
     #endregion
 
 
@@ -52,6 +63,8 @@ public class TravelViewModel : BaseViewModel
 
     public ICommand WarpCommand { get; set; }
     public ICommand UnlockIdolsCommand { get; set; }
+    public ICommand CustomWarpCommand { get; set; }
+    public ICommand OpenCreateCustomWarpCommand { get; set; }
 
     #endregion
 
@@ -144,6 +157,87 @@ public class TravelViewModel : BaseViewModel
         }
     }
 
+    private ObservableCollection<string> _customMainAreas;
+    public ObservableCollection<string> CustomMainAreas
+    {
+        get => _customMainAreas;
+        private set => SetProperty(ref _customMainAreas, value);
+    }
+
+    private ObservableCollection<CustomWarp> _customWarpLocations;
+    public ObservableCollection<CustomWarp> CustomWarpLocations
+    {
+        get => _customWarpLocations;
+        set => SetProperty(ref _customWarpLocations, value);
+    }
+
+    private string _selectedCustomMainArea;
+    public string SelectedCustomMainArea
+    {
+        get => _selectedCustomMainArea;
+        set
+        {
+            if (!SetProperty(ref _selectedCustomMainArea, value) || value == null) return;
+
+            if (_isCustomSearchActive)
+            {
+                IsCustomSearchActive = false;
+                _customSearchText = string.Empty;
+                OnPropertyChanged(nameof(CustomSearchText));
+                _preSearchCustomMainArea = null;
+            }
+
+            UpdateCustomLocationsList();
+        }
+    }
+
+    private CustomWarp _selectedCustomWarp;
+    public CustomWarp SelectedCustomWarp
+    {
+        get => _selectedCustomWarp;
+        set => SetProperty(ref _selectedCustomWarp, value);
+    }
+
+    private bool _isCustomSearchActive;
+    public bool IsCustomSearchActive
+    {
+        get => _isCustomSearchActive;
+        private set => SetProperty(ref _isCustomSearchActive, value);
+    }
+
+    private string _customSearchText = string.Empty;
+    public string CustomSearchText
+    {
+        get => _customSearchText;
+        set
+        {
+            if (!SetProperty(ref _customSearchText, value)) return;
+
+            if (string.IsNullOrEmpty(value))
+            {
+                _isCustomSearchActive = false;
+
+                if (_preSearchCustomMainArea != null)
+                {
+                    _selectedCustomMainArea = _preSearchCustomMainArea;
+                    OnPropertyChanged(nameof(SelectedCustomMainArea));
+                    UpdateCustomLocationsList();
+                    _preSearchCustomMainArea = null;
+                }
+            }
+            else
+            {
+                if (!_isCustomSearchActive)
+                {
+                    _preSearchCustomMainArea = SelectedCustomMainArea;
+                    _isCustomSearchActive = true;
+                }
+
+                ApplyCustomFilter();
+            }
+        }
+    }
+
     #endregion
 
     #region Private Methods
@@ -209,6 +303,106 @@ public class TravelViewModel : BaseViewModel
 
     private void Warp() =>  _ = Task.Run(() => _travelService.Warp(SelectedWarpLocation));
     private void UnlockIdols() => idolEventIds.ForEach(id => _eventService.SetEvent(id, true));
+
+    private void LoadCustomWarps()
+    {
+        _customWarpDict = DataLoader.LoadCustomWarps();
+        RebuildCustomMainAreas();
+    }
+
+    private void RebuildCustomMainAreas()
+    {
+        var previousSelection = _selectedCustomMainArea;
+        _customMainAreas.Clear();
+        foreach (var area in _customWarpDict.Keys)
+        {
+            _customMainAreas.Add(area);
+        }
+
+        if (previousSelection != null && _customWarpDict.ContainsKey(previousSelection))
+        {
+            SelectedCustomMainArea = previousSelection;
+        }
+        else
+        {
+            SelectedCustomMainArea = _customMainAreas.FirstOrDefault();
+            if (SelectedCustomMainArea == null) UpdateCustomLocationsList();
+        }
+    }
+
+    private void UpdateCustomLocationsList()
+    {
+        if (string.IsNullOrEmpty(SelectedCustomMainArea) || !_customWarpDict.ContainsKey(SelectedCustomMainArea))
+        {
+            CustomWarpLocations = new ObservableCollection<CustomWarp>();
+            SelectedCustomWarp = null;
+            return;
+        }
+
+        CustomWarpLocations = new ObservableCollection<CustomWarp>(_customWarpDict[SelectedCustomMainArea]);
+        SelectedCustomWarp = CustomWarpLocations.FirstOrDefault();
+    }
+
+    private void ApplyCustomFilter()
+    {
+        var searchTextLower = CustomSearchText.ToLower();
+        var matches = _customWarpDict
+            .SelectMany(kv => kv.Value)
+            .Where(w => (w.Name != null && w.Name.ToLower().Contains(searchTextLower)) ||
+                        (w.MainArea != null && w.MainArea.ToLower().Contains(searchTextLower)));
+
+        CustomWarpLocations = new ObservableCollection<CustomWarp>(matches);
+        SelectedCustomWarp = CustomWarpLocations.FirstOrDefault();
+    }
+
+    private void CustomWarp()
+    {
+        if (SelectedCustomWarp == null) return;
+
+        var warp = SelectedCustomWarp;
+        _ = Task.Run(() => _travelService.WarpWithCoords(warp.Coords, warp.Angle, warp.IdolId));
+    }
+
+    private void OpenCreateCustomWarp()
+    {
+        var window = new CreateCustomWarpWindow(
+            _customWarpDict,
+            AreOptionsEnabled,
+            _playerService,
+            _travelService,
+            OnCustomWarpChanged);
+        window.ShowDialog();
+    }
+
+    private void OnCustomWarpChanged(CustomWarpChange change)
+    {
+        switch (change)
+        {
+            case WarpAdded added:
+                if (!_customWarpDict.TryGetValue(added.Warp.MainArea, out var addList))
+                {
+                    addList = new List<CustomWarp>();
+                    _customWarpDict[added.Warp.MainArea] = addList;
+                }
+                if (!addList.Contains(added.Warp)) addList.Add(added.Warp);
+                break;
+
+            case WarpDeleted deleted:
+                if (_customWarpDict.TryGetValue(deleted.Category, out var delList))
+                {
+                    delList.Remove(deleted.Warp);
+                    if (delList.Count == 0) _customWarpDict.Remove(deleted.Category);
+                }
+                break;
+
+            case CategoryDeleted catDeleted:
+                _customWarpDict.Remove(catDeleted.Category);
+                break;
+        }
+
+        RebuildCustomMainAreas();
+        DataLoader.SaveCustomWarps(_customWarpDict);
+    }
 
     #endregion
 }

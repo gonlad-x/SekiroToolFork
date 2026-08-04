@@ -46,6 +46,7 @@
         <PackageReference Include="System.Net.Http" Version="4.3.4" />
         <PackageReference Include="System.Numerics.Vectors" Version="4.6.1" />
         <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
+        <PackageReference Include="System.Text.Json" Version="11.0.0-preview.3.26207.106" />
     </ItemGroup>
     <ItemGroup>
       <!-- Only for FolderBrowserDialog: WPF/net48 has no folder picker of its own. -->
