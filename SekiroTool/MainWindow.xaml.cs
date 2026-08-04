@@ -269,6 +269,11 @@ public partial class MainWindow : Window
 
         if (SettingsManager.Default.BrowserOverlayEnabled) BrowserOverlayExporter.Clear();
 
+        // Closing without clicking "Stop run mode" first would otherwise skip RunModeService.Stop(),
+        // leaving the Activate On Launch suppression from TryStart() - which persists to disk
+        // immediately - stuck off for the next launch. Stop() here restores it before we exit.
+        _runModeService.Stop();
+
         // Without this the game keeps running with every flag set, hook installed and patch applied
         // until the game itself is closed.
         _runModeService.RevertGameChanges(keepLegalOptions: false);
