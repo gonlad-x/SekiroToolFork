@@ -11,16 +11,39 @@ public partial class CustomMessageBox : Window
 {
     public bool Result { get; private set; }
 
-    public CustomMessageBox(string message, bool showCancel)
+    public CustomMessageBox(string message, bool showCancel, string title = "Message")
     {
         InitializeComponent();
         MessageText.Text = message;
+        TitleText.Text = title;
             
         if (showCancel)
         {
             CancelButton.Visibility = Visibility.Visible;
         }
         
+        SetupWindow();
+    }
+
+    // Yes/No buttons
+    public CustomMessageBox(string message, string title, bool showYesNo)
+    {
+        InitializeComponent();
+        MessageText.Text = message;
+        TitleText.Text = title;
+
+        if (showYesNo)
+        {
+            OkButton.Visibility = Visibility.Collapsed;
+            YesButton.Visibility = Visibility.Visible;
+            NoButton.Visibility = Visibility.Visible;
+        }
+
+        SetupWindow();
+    }
+
+    private void SetupWindow()
+    {
         Loaded += (s, e) =>
         {
             IntPtr hwnd = new WindowInteropHelper(this).Handle;
@@ -41,6 +64,18 @@ public partial class CustomMessageBox : Window
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        Result = false;
+        Close();
+    }
+
+    private void YesButton_Click(object sender, RoutedEventArgs e)
+    {
+        Result = true;
+        Close();
+    }
+
+    private void NoButton_Click(object sender, RoutedEventArgs e)
     {
         Result = false;
         Close();
