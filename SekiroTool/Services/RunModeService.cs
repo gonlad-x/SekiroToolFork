@@ -30,6 +30,7 @@ public class RunModeService : IRunModeService
     private readonly NopManager _nopManager;
     private readonly IPlayerService _playerService;
     private readonly IUtilityService _utilityService;
+    private readonly ITargetService _targetService;
     private readonly IReminderService _reminderService;
     private readonly HotkeyManager _hotkeyManager;
     private readonly Func<bool> _getActivateOnLaunchEnabled;
@@ -39,8 +40,8 @@ public class RunModeService : IRunModeService
     private bool _wasActivateOnLaunchEnabled;
 
     public RunModeService(IMemoryService memoryService, HookManager hookManager, NopManager nopManager,
-        IPlayerService playerService, IUtilityService utilityService, IReminderService reminderService,
-        HotkeyManager hotkeyManager,
+        IPlayerService playerService, IUtilityService utilityService, ITargetService targetService,
+        IReminderService reminderService, HotkeyManager hotkeyManager,
         IStateService stateService, Func<bool> getActivateOnLaunchEnabled,
         Action<bool> setActivateOnLaunchEnabled, Func<string, bool> getActivateOnLaunchOption)
     {
@@ -49,6 +50,7 @@ public class RunModeService : IRunModeService
         _nopManager = nopManager;
         _playerService = playerService;
         _utilityService = utilityService;
+        _targetService = targetService;
         _reminderService = reminderService;
         _hotkeyManager = hotkeyManager;
         _getActivateOnLaunchEnabled = getActivateOnLaunchEnabled;
@@ -68,22 +70,39 @@ public class RunModeService : IRunModeService
 
     #region Public Methods
 
-    public int CountActiveChanges()
+    public int CountActiveChanges() => DescribeActiveChanges().Count;
+
+    public IReadOnlyList<string> DescribeActiveChanges()
     {
-        if (!_memoryService.IsAttached) return 0;
-
-        var count = 0;
-
-        count += _hookManager.InstalledHookKeys.Count(key => !LegalHookKeys.Contains(key));
-        count += _nopManager.InstalledNopKeys.Count(key => !LegalNopKeys.Contains(key));
+        var changes = new List<string>();
+        if (!_memoryService.IsAttached) return changes;
 
         if (DebugFlags.Base != IntPtr.Zero)
-            count += DebugFlagOffsets.Count(offset => _memoryService.Read<byte>(DebugFlags.Base + offset) != 0);
+            changes.AddRange(DebugFlagsByName
+                .Where(flag => _memoryService.Read<byte>(DebugFlags.Base + flag.Offset) != 0)
+                .Select(flag => Humanise(flag.Name)));
+
+        if (_playerService.IsPlayerNoDamageEnabled()) changes.Add("Player No Damage");
+        if (_targetService.IsNoDamageEnabled()) changes.Add("Target No Damage");
+        if (_targetService.IsNoDeathEnabled()) changes.Add("Target No Death");
+        if (_targetService.IsNoPostureBuildupEnabled()) changes.Add("Target No Posture Buildup");
+        if (_targetService.IsAiFreezeEnabled()) changes.Add("Target Ai Freeze");
+        if (_targetService.IsNoAttackEnabled()) changes.Add("Target No Attack");
+        if (_targetService.IsNoMoveEnabled()) changes.Add("Target No Move");
+
+        changes.AddRange(_hookManager.InstalledHookKeys
+            .Where(key => !LegalHookKeys.Contains(key))
+            .Select(DescribeCaveAddress));
+
+        changes.AddRange(_nopManager.InstalledNopKeys
+            .Where(key => !LegalNopKeys.Contains(key))
+            .Select(DescribeNopAddress));
 
         var gameSpeed = _utilityService.GetGameSpeed();
-        if (gameSpeed > 0f && Math.Abs(gameSpeed - 1f) > 0.001f) count++;
+        if (gameSpeed > 0f && Math.Abs(gameSpeed - 1f) > 0.001f)
+            changes.Add($"Game speed {gameSpeed:0.##}x");
 
-        return count;
+        return changes;
     }
 
     public void RevertGameChanges(bool keepLegalOptions)
@@ -100,6 +119,8 @@ public class RunModeService : IRunModeService
             StopSnakeCanyonLoop();
             Log("resetting debug flags");
             ResetDebugFlags();
+            Log("resetting character bit flags");
+            ResetCharacterBitFlags();
             Log("resetting speeds");
             ResetSpeeds();
             Log("restoring patches");
@@ -200,11 +221,48 @@ public class RunModeService : IRunModeService
     /// Read off the DebugFlags offsets class rather than listed by hand, so a flag added later is
     /// covered automatically and the per-version offsets stay correct.
     /// </summary>
-    private static IEnumerable<int> DebugFlagOffsets =>
+    private static IEnumerable<int> DebugFlagOffsets => DebugFlagsByName.Select(flag => flag.Offset);
+
+    private static IEnumerable<(string Name, int Offset)> DebugFlagsByName =>
         typeof(DebugFlags)
             .GetProperties(BindingFlags.Public | BindingFlags.Static)
             .Where(property => property.PropertyType == typeof(int))
-            .Select(property => (int)property.GetValue(null)!);
+            .Select(property => (property.Name, (int)property.GetValue(null)!));
+
+    /// <summary>
+    /// Turns an offset name into something readable for the confirmation dialog, e.g.
+    /// PlayerNoDeath -> "Player No Death". Reverse-looked-up by value so no name list is maintained.
+    /// </summary>
+    private static string Humanise(string name) =>
+        System.Text.RegularExpressions.Regex.Replace(name, "(?<!^)([A-Z])", " $1");
+
+    private static string DescribeCaveAddress(nint key)
+    {
+        if (CodeCaveOffsets.Base != IntPtr.Zero)
+        {
+            var offset = (int)(key - CodeCaveOffsets.Base);
+            var name = typeof(CodeCaveOffsets)
+                .GetFields(BindingFlags.Public | BindingFlags.Static)
+                .Where(field => field.IsLiteral && field.FieldType == typeof(int))
+                .FirstOrDefault(field => (int)field.GetRawConstantValue()! == offset)?.Name;
+
+            if (name != null) return Humanise(name);
+        }
+
+        return $"hook at 0x{key:X}";
+    }
+
+    private static string DescribeNopAddress(long key)
+    {
+        var name = NamedAddress(typeof(Patches), key) ?? NamedAddress(typeof(Functions), key);
+        return name != null ? Humanise(name) : $"nop at 0x{key:X}";
+    }
+
+    private static string? NamedAddress(Type offsetsType, long address) =>
+        offsetsType
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Where(field => !field.IsLiteral && field.FieldType == typeof(nint))
+            .FirstOrDefault(field => (nint)field.GetValue(null)! == (nint)address)?.Name;
 
     private void StopSnakeCanyonLoop()
     {
@@ -228,6 +286,27 @@ public class RunModeService : IRunModeService
 
         foreach (var offset in DebugFlagOffsets)
             _memoryService.Write(DebugFlags.Base + offset, (byte)0);
+    }
+
+    /// <summary>
+    /// Options stored as bits on a character instance rather than in the debug-flag block: Player
+    /// No Damage and the Target tab's per-enemy toggles. No registry records these, so unlike hooks
+    /// and nops they have to be listed by hand - add to this method when a bit-flag option is added.
+    /// Player No Damage being missed here is why it survived the first working build of run mode.
+    ///
+    /// The target ones need a live locked-on enemy; with none, the pointer read yields zero and the
+    /// write fails harmlessly, so they are best-effort. The bits die with the entity anyway.
+    /// </summary>
+    private void ResetCharacterBitFlags()
+    {
+        _playerService.TogglePlayerNoDamage(false);
+
+        _targetService.ToggleNoDamage(false);
+        _targetService.ToggleNoDeath(false);
+        _targetService.ToggleNoPostureBuildup(false);
+        _targetService.ToggleAiFreeze(false);
+        _targetService.ToggleNoAttack(false);
+        _targetService.ToggleNoMove(false);
     }
 
     private void ResetSpeeds()

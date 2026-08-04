@@ -102,7 +102,7 @@ public partial class MainWindow : Window
         // options and can undo them. Activate On Launch is reached through delegates so the
         // service stays free of ViewModel references.
         _runModeService = new RunModeService(_memoryService, hookManager, _nopManager, _playerService,
-            utilityService, reminderService, _hotkeyManager, _stateService,
+            utilityService, targetService, reminderService, _hotkeyManager, _stateService,
             () => activateOnLaunchViewModel.IsEnabled,
             isEnabled => activateOnLaunchViewModel.IsEnabled = isEnabled,
             activateOnLaunchManager.GetBool);
@@ -280,6 +280,11 @@ public partial class MainWindow : Window
         if (_runModeService.IsActive)
         {
             _runModeService.Stop();
+            MsgBox.Show(
+                "Live run mode stopped.\n\n" +
+                "Options that were on before live run mode are not re-applied - restart the tool " +
+                "(with Activate On Launch back on) to get them back.",
+                "Live run mode");
             return;
         }
 
@@ -289,9 +294,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        var activeChanges = _runModeService.CountActiveChanges();
-        var message = activeChanges > 0
-            ? $"{activeChanges} game-modifying change(s) are active.\n\n" +
+        var activeChanges = _runModeService.DescribeActiveChanges();
+        var message = activeChanges.Count > 0
+            ? $"{activeChanges.Count} game-modifying change(s) are active:\n\n" +
+              string.Join("\n", activeChanges.Select(change => $"  - {change}")) + "\n\n" +
               "Reset them and start live run mode?\n\n" +
               "Start live run mode BEFORE loading the run's save."
             : "Start live run mode?\n\n" +
@@ -317,8 +323,13 @@ public partial class MainWindow : Window
         if (isActive && MainTabControl.SelectedItem is TabItem { IsEnabled: false })
             MainTabControl.SelectedIndex = MainTabControl.Items.Count - 1;
 
-        RunModeButton.Content = isActive ? "Stop live run mode" : "Start live run mode";
+        RunModeButton.Content = isActive ? "Stop run mode" : "Start live run mode";
         RunModeBanner.Visibility = isActive ? Visibility.Visible : Visibility.Collapsed;
+
+        // The banner, both buttons and the attach status do not fit this row together, and the
+        // banner is the one that gets clipped. Launch Game is already useless while attached, so it
+        // gives up its space.
+        LaunchGameButton.Visibility = isActive ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void LaunchGame_Click(object sender, RoutedEventArgs e) => Task.Run(GameLauncher.LaunchSekiro);

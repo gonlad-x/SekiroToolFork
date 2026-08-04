@@ -212,6 +212,12 @@ public class PlayerService(IMemoryService memoryService, HookManager hookManager
         memoryService.SetBitValue(bitFlags, (int)ChrIns.ChrDataBitFlags.NoDamage, isEnabled);
     }
 
+    public bool IsPlayerNoDamageEnabled()
+    {
+        var bitFlags = GetChrDataPtr() + (int)ChrIns.ChrDataOffsets.BitFlags;
+        return memoryService.IsBitSet(bitFlags, (int)ChrIns.ChrDataBitFlags.NoDamage);
+    }
+
     public void TogglePlayerOneShotHealth(bool isEnabled)
     {
         memoryService.Write(DebugFlags.Base + DebugFlags.PlayerOneShotHealth, isEnabled);

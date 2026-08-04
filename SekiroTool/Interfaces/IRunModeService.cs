@@ -19,6 +19,11 @@ public interface IRunModeService
     int CountActiveChanges();
 
     /// <summary>
+    /// Human-readable names of those changes, for the confirmation dialog.
+    /// </summary>
+    IReadOnlyList<string> DescribeActiveChanges();
+
+    /// <summary>
     /// Reverts everything the tool changed in the running game.
     /// </summary>
     /// <param name="keepLegalOptions">

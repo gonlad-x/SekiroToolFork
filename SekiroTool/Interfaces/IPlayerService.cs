@@ -7,6 +7,7 @@ public interface IPlayerService
     void SavePos(int index);
     void RestorePos(int index);
     Position GetCurrentPosition();
+    bool IsPlayerNoDamageEnabled();
     (float x, float y, float z) GetCoords();
     
     void SetHp(int hp);
