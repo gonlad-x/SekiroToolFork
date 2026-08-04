@@ -54,7 +54,7 @@ public class DebugDrawService : IDebugDrawService
         else
         {
             _memoryService.Write(flagPtr, (byte)0);
-       
+            _nopManager.RestoreNop(Patches.DebugFont);
         }
     }
 }
