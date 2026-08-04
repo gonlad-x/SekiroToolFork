@@ -35,7 +35,44 @@ public static class OriginalBytesByPatch
             Version1_3_0 or Version1_4_0  => [0xE8, 0xB8, 0x96, 0x4E, 0x00],
             Version1_5_0 => [0xE8, 0x78, 0xBC, 0x50, 0x00],
             Version1_6_0 => [0xE8, 0xE8, 0xBF, 0x50, 0x00]
-           
+
         };
+    }
+
+    // Version-independent originals, moved here from their call sites so RunModeService has a
+    // single source of truth to revert from.
+
+    public static class NoLogo
+    {
+        public static byte[] GetOriginal() => [0x74];
+    }
+
+    public static class MenuTutorialSkip
+    {
+        public static byte[] GetOriginal() => [0x84, 0xC0, 0x75, 0x08];
+    }
+
+    public static class EventView
+    {
+        public static byte[] GetOriginal() => [0x84, 0xC0, 0x0F, 0x84, 0x83, 0x00, 0x00, 0x00];
+    }
+
+    public static class PlayerSoundView
+    {
+        public static byte[] GetOriginal() => [0x74];
+    }
+
+    public static class SaveInCombat
+    {
+        public static byte[] GetOriginal() => [0x80, 0xB9, 0xFC, 0x11, 0x00, 0x00, 0x03, 0x74, 0x4B];
+    }
+
+    /// <summary>
+    /// Written at <c>Patches.DefaultSoundVolWrite + 0x4</c>, not at the patch address itself.
+    /// </summary>
+    public static class DefaultSoundVol
+    {
+        public const int Offset = 0x4;
+        public static byte[] GetOriginal() => [0x07, 0x07];
     }
 }

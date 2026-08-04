@@ -17,19 +17,20 @@ public class SettingsService(IMemoryService memoryService, NopManager nopManager
     {
         if (isEnabled)
         {
-            if (!await WaitForValidBytes(Patches.NoLogo, [0x74]))
+            if (!await WaitForValidBytes(Patches.NoLogo, OriginalBytesByPatch.NoLogo.GetOriginal()))
                 return;
             memoryService.WriteBytes(Patches.NoLogo, [0xEB]);
         }
         else
         {
-            memoryService.WriteBytes(Patches.NoLogo, [0x74]);
+            memoryService.WriteBytes(Patches.NoLogo, OriginalBytesByPatch.NoLogo.GetOriginal());
         }
     }
 
     public void ToggleNoTutorials(bool isEnabled)
     {
-        memoryService.WriteBytes(Patches.MenuTutorialSkip, isEnabled ? [0x90, 0x90, 0x90, 0x90] : [0x84, 0xC0, 0x75, 0x08]);
+        memoryService.WriteBytes(Patches.MenuTutorialSkip,
+            isEnabled ? [0x90, 0x90, 0x90, 0x90] : OriginalBytesByPatch.MenuTutorialSkip.GetOriginal());
         memoryService.WriteBytes(Patches.ShowSmallHintBox,
             isEnabled ? [0x90, 0x90, 0x90, 0x90, 0x90] : OriginalBytesByPatch.ShowSmallHintBox.GetOriginal());
         memoryService.WriteBytes(Patches.ShowTutorialText,
@@ -138,8 +139,8 @@ public class SettingsService(IMemoryService memoryService, NopManager nopManager
     {
         var defaultSoundWrite = Patches.DefaultSoundVolWrite;
 
-        byte[] bytes = [0x07, 0x07];
-        if (!await WaitForValidBytes(defaultSoundWrite + 0x4, bytes))
+        byte[] bytes = OriginalBytesByPatch.DefaultSoundVol.GetOriginal();
+        if (!await WaitForValidBytes(defaultSoundWrite + OriginalBytesByPatch.DefaultSoundVol.Offset, bytes))
             return;
 
         memoryService.Write(defaultSoundWrite + 0x4, (byte)defaultSoundVolume);

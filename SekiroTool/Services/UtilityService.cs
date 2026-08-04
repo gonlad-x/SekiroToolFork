@@ -18,7 +18,8 @@ public class UtilityService(IMemoryService memoryService, HookManager hookManage
     }
 
     public void TogglePlayerSoundView(bool isEnabled) =>
-        memoryService.Write(Patches.PlayerSoundView, isEnabled ? (byte)0x75 : (byte)0x74);
+        memoryService.WriteBytes(Patches.PlayerSoundView,
+            isEnabled ? [0x75] : OriginalBytesByPatch.PlayerSoundView.GetOriginal());
 
     public void ToggleGameRendFlag(int offset, bool isEnabled)
     {
@@ -211,7 +212,7 @@ public class UtilityService(IMemoryService memoryService, HookManager hookManage
     {
         if (isEnabled)
             memoryService.WriteBytes(Patches.SaveInCombat, [0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90]);
-        else memoryService.WriteBytes(Patches.SaveInCombat, [0x80, 0xB9, 0xFC, 0x11, 0x00, 0x00, 0x03, 0x74, 0x4B]);
+        else memoryService.WriteBytes(Patches.SaveInCombat, OriginalBytesByPatch.SaveInCombat.GetOriginal());
     }
 
     public void OpenUpgradePrayerBead()

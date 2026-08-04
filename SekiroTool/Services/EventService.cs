@@ -43,7 +43,7 @@ public class EventService(IMemoryService memoryService) : IEventService
         }
         else
         {
-            memoryService.WriteBytes(Patches.EventView, [0x84, 0xC0, 0x0F, 0x84, 0x83, 0x00, 0x00, 0x00]);
+            memoryService.WriteBytes(Patches.EventView, OriginalBytesByPatch.EventView.GetOriginal());
         }
 
         var ptr = memoryService.Read<nint>(DebugEventMan.Base) + DebugEventMan.DrawAllEvent;
