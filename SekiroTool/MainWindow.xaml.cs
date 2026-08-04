@@ -52,9 +52,9 @@ public partial class MainWindow : Window
         _nopManager = new NopManager(_memoryService, _stateService);
         _hotkeyManager = new HotkeyManager(_memoryService);
 
-        _playerService = new PlayerService(_memoryService, hookManager);
-        IReminderService reminderService = new ReminderService(_memoryService);
         ITravelService travelService = new TravelService(_memoryService, hookManager);
+        _playerService = new PlayerService(_memoryService, hookManager, travelService);
+        IReminderService reminderService = new ReminderService(_memoryService);
         IEnemyService enemyService = new EnemyService(_memoryService, hookManager, reminderService);
         ITargetService targetService = new TargetService(_memoryService, hookManager, reminderService);
         IDebugDrawService debugDrawService = new DebugDrawService(_memoryService, _stateService, _nopManager);

@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using SekiroTool.Enums;
+﻿using SekiroTool.Enums;
 using SekiroTool.Interfaces;
 using SekiroTool.Memory;
 using SekiroTool.Models;
@@ -8,36 +7,39 @@ using static SekiroTool.Memory.Offsets;
 
 namespace SekiroTool.Services;
 
-public class PlayerService(IMemoryService memoryService, HookManager hookManager) : IPlayerService
+public class PlayerService(IMemoryService memoryService, HookManager hookManager, ITravelService travelService)
+    : IPlayerService
 {
     private Position _position1 = new();
     private Position _position2 = new();
-    private Dictionary<int, int> _idolsByAreaIndex = DataLoader.GetIdolIdsByAreaIndexDictionary();
 
     #region Public Methods
 
     public void SavePos(int index)
     {
-        var chrPhysicsPtr = GetChrPhysicsPtr();
-
-        var areaIndex = memoryService.Read<int>(memoryService.Read<nint>(FieldArea.Base) +
-                                                FieldArea.CurrentWorldBlockIndex);
-
-        byte[] positionBytes = memoryService.ReadBytes(chrPhysicsPtr + (int)ChrIns.ChrPhysicsOffsets.X, 16);
-        float angle = memoryService.Read<float>(chrPhysicsPtr + (int)ChrIns.ChrPhysicsOffsets.Angle);
+        var current = GetCurrentPosition();
 
         if (index == 0)
         {
-            _position1.Xyz = positionBytes;
-            _position1.Angle = angle;
-            _position1.AreaIndex = areaIndex;
+            _position1 = current;
         }
         else
         {
-            _position2.Xyz = positionBytes;
-            _position2.Angle = angle;
-            _position2.AreaIndex = areaIndex;
+            _position2 = current;
         }
+    }
+
+    public Position GetCurrentPosition()
+    {
+        var chrPhysicsPtr = GetChrPhysicsPtr();
+
+        return new Position
+        {
+            Xyz = memoryService.ReadBytes(chrPhysicsPtr + (int)ChrIns.ChrPhysicsOffsets.X, 16),
+            Angle = memoryService.Read<float>(chrPhysicsPtr + (int)ChrIns.ChrPhysicsOffsets.Angle),
+            AreaIndex = memoryService.Read<int>(memoryService.Read<nint>(FieldArea.Base) +
+                                               FieldArea.CurrentWorldBlockIndex)
+        };
     }
 
     public void RestorePos(int index)
@@ -65,75 +67,14 @@ public class PlayerService(IMemoryService memoryService, HookManager hookManager
 
         if (areaIndex != savedAreaIndex)
         {
-            Task.Run(() => { DoAreaWarp(savedAreaIndex, xyzBytes, angle); });
+            if (!travelService.TryResolveIdol(savedAreaIndex, out var idolId)) return;
+            Task.Run(() => { travelService.WarpWithCoords(xyzBytes, angle, idolId); });
         }
         else
         {
             memoryService.WriteBytes(chrPhysicsPtr + (int)ChrIns.ChrPhysicsOffsets.X, xyzBytes);
             memoryService.Write(chrPhysicsPtr + (int)ChrIns.ChrPhysicsOffsets.Angle, angle);
         }
-    }
-
-    private void DoAreaWarp(int areaIndex, byte[] xyzBytes, float angle)
-    {
-        var idolId = _idolsByAreaIndex[areaIndex];
-
-        var bytes = AsmLoader.GetAsmBytes(AsmScript.Warp);
-        AsmHelper.WriteAbsoluteAddresses(bytes, [
-            (idolId, 0x0 + 2),
-            (Functions.Warp, 0x10 + 2)
-        ]);
-        memoryService.AllocateAndExecute(bytes);
-
-        var coordWriteHook = Hooks.SetWarpCoordinates;
-        var angleWriteHook = Hooks.SetWarpAngle;
-
-        var coordLoc = CodeCaveOffsets.Base + CodeCaveOffsets.WarpCoords;
-        var coordWriteCode = CodeCaveOffsets.Base + CodeCaveOffsets.WarpCoordsCode;
-
-        memoryService.WriteBytes(coordLoc, xyzBytes);
-
-        var codeBytes = AsmLoader.GetAsmBytes(AsmScript.WarpCoordWrite);
-
-        bytes = AsmHelper.GetRelOffsetBytes(coordWriteCode, coordLoc, 7);
-        Array.Copy(bytes, 0, codeBytes, 0x0 + 3, bytes.Length);
-        memoryService.WriteBytes(coordWriteCode, codeBytes);
-
-        var angleLoc = CodeCaveOffsets.Base + CodeCaveOffsets.WarpAngle;
-
-        var angleWriteCode = CodeCaveOffsets.Base + CodeCaveOffsets.WarpAngleCode;
-
-        var angleToWrite = new float[] { 0f, angle, 0f, 0f };
-        memoryService.WriteBytes(angleLoc, MemoryMarshal.AsBytes(angleToWrite.AsSpan()).ToArray());
-
-        codeBytes = AsmLoader.GetAsmBytes(AsmScript.WarpAngleWrite);
-        bytes = AsmHelper.GetRelOffsetBytes(angleWriteCode, angleLoc, 7);
-        Array.Copy(bytes, 0, codeBytes, 0x0 + 3, bytes.Length);
-        memoryService.WriteBytes(angleWriteCode, codeBytes);
-
-        hookManager.InstallHook(coordWriteCode, coordWriteHook,
-            [0x66, 0x0F, 0x7F, 0x80, 0xC0, 0x0A, 0x00, 0x00]);
-        hookManager.InstallHook(angleWriteCode, angleWriteHook,
-            [0x66, 0x0F, 0x7F, 0x80, 0xD0, 0x0A, 0x00, 0x00]);
-
-        var isGameLoadedPtr = memoryService.Read<nint>(MenuMan.Base) + MenuMan.IsLoaded;
-        {
-            int start = Environment.TickCount;
-            while (memoryService.Read<byte>(isGameLoadedPtr) != 0 &&
-                   Environment.TickCount < start + 10000)
-                Thread.Sleep(50);
-        }
-
-        {
-            int start = Environment.TickCount;
-
-            while (memoryService.Read<byte>(isGameLoadedPtr) != 1 &&
-                   Environment.TickCount < start + 10000)
-                Thread.Sleep(50);
-        }
-
-        hookManager.UninstallHook(coordWriteCode);
-        hookManager.UninstallHook(angleWriteCode);
     }
 
     public (float x, float y, float z) GetCoords()

@@ -1,9 +1,12 @@
-﻿namespace SekiroTool.Interfaces;
+﻿using SekiroTool.Models;
+
+namespace SekiroTool.Interfaces;
 
 public interface IPlayerService
 {
     void SavePos(int index);
     void RestorePos(int index);
+    Position GetCurrentPosition();
     (float x, float y, float z) GetCoords();
     
     void SetHp(int hp);

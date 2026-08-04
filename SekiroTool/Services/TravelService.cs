@@ -10,27 +10,36 @@ namespace SekiroTool.Services;
 
 public class TravelService(IMemoryService memoryService, HookManager hookManager) : ITravelService
 {
+    private readonly Dictionary<int, int> _idolsByAreaIndex = DataLoader.GetIdolIdsByAreaIndexDictionary();
+
+    public bool TryResolveIdol(int areaIndex, out int idolId) =>
+        _idolsByAreaIndex.TryGetValue(areaIndex, out idolId);
+
     public void Warp(Warp warp)
     {
-        var bytes = AsmLoader.GetAsmBytes(AsmScript.Warp);
-        AsmHelper.WriteAbsoluteAddresses(bytes, [
-            (warp.IdolId, 0x0 + 2),
-            (Functions.Warp, 0x10 + 2)
-        ]);
-        memoryService.AllocateAndExecute(bytes);
+        if (warp.HasCoordinates)
+        {
+            WarpWithCoords(warp.Coords, warp.Angle, warp.IdolId);
+            return;
+        }
 
-        if (warp.HasCoordinates) DoWarpHook(warp);
+        WarpToIdol(warp.IdolId);
     }
 
-    private void DoWarpHook(Warp warp)
+    public void WarpWithCoords(float[] coords, float angle, int idolId) =>
+        WarpWithCoords(MemoryMarshal.AsBytes(coords.AsSpan()).ToArray(), angle, idolId);
+
+    public void WarpWithCoords(byte[] xyzBytes, float angle, int idolId)
     {
+        WarpToIdol(idolId);
+
         var coordWriteHook = Hooks.SetWarpCoordinates;
         var angleWriteHook = Hooks.SetWarpAngle;
 
         var coordLoc = CodeCaveOffsets.Base + CodeCaveOffsets.WarpCoords;
         var coordWriteCode = CodeCaveOffsets.Base + CodeCaveOffsets.WarpCoordsCode;
         
-        memoryService.WriteBytes(coordLoc, MemoryMarshal.AsBytes(warp.Coords.AsSpan()).ToArray());
+        memoryService.WriteBytes(coordLoc, xyzBytes);
         
         var codeBytes = AsmLoader.GetAsmBytes(AsmScript.WarpCoordWrite);
         
@@ -42,7 +51,7 @@ public class TravelService(IMemoryService memoryService, HookManager hookManager
         
         var angleWriteCode = CodeCaveOffsets.Base + CodeCaveOffsets.WarpAngleCode;
         
-        var angleToWrite = new float[] { 0f, warp.Angle, 0f, 0f };
+        var angleToWrite = new float[] { 0f, angle, 0f, 0f };
         memoryService.WriteBytes(angleLoc, MemoryMarshal.AsBytes(angleToWrite.AsSpan()).ToArray());
         
         codeBytes = AsmLoader.GetAsmBytes(AsmScript.WarpAngleWrite);
@@ -73,7 +82,15 @@ public class TravelService(IMemoryService memoryService, HookManager hookManager
         
         hookManager.UninstallHook(coordWriteCode);
         hookManager.UninstallHook(angleWriteCode);
+    }
         
-        
+    private void WarpToIdol(int idolId)
+    {
+        var bytes = AsmLoader.GetAsmBytes(AsmScript.Warp);
+        AsmHelper.WriteAbsoluteAddresses(bytes, [
+            (idolId, 0x0 + 2),
+            (Functions.Warp, 0x10 + 2)
+        ]);
+        memoryService.AllocateAndExecute(bytes);
     }
 }
