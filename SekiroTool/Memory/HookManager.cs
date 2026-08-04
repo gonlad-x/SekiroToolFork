@@ -64,6 +64,25 @@ namespace SekiroTool.Memory
         /// </summary>
         public IReadOnlyList<nint> InstalledHookKeys => _hookRegistry.Keys.ToList();
 
+        /// <summary>
+        /// Origin address and original bytes for a currently installed hook, if any. Read-only -
+        /// lets a caller (RunModeService) snapshot enough to reinstall the hook later via
+        /// InstallHook without needing to know that option's specific parameters again.
+        /// </summary>
+        public bool TryGetHookInstallData(nint key, out nint origin, out byte[] originalBytes)
+        {
+            if (_hookRegistry.TryGetValue(key, out var data))
+            {
+                origin = data.OriginAddr;
+                originalBytes = data.OriginalBytes;
+                return true;
+            }
+
+            origin = default;
+            originalBytes = [];
+            return false;
+        }
+
         public void ClearHooks()
         {
             _hookRegistry.Clear();

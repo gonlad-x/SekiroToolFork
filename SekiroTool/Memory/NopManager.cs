@@ -34,6 +34,23 @@ namespace SekiroTool.Memory
         /// </summary>
         public IReadOnlyList<long> InstalledNopKeys => _nopRegistry.Keys.ToList();
 
+        /// <summary>
+        /// Byte length of a currently installed nop, if any - equal to the retained original
+        /// bytes' length. Read-only - lets a caller (RunModeService) snapshot enough to reinstall
+        /// the nop later via InstallNop.
+        /// </summary>
+        public bool TryGetNopLength(long address, out int length)
+        {
+            if (_nopRegistry.TryGetValue(address, out var originalBytes))
+            {
+                length = originalBytes.Length;
+                return true;
+            }
+
+            length = 0;
+            return false;
+        }
+
         public void RestoreNop(long address)
         {
             if (_nopRegistry.TryGetValue(address, out byte[] originalBytes))

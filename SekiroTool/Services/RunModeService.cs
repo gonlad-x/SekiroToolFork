@@ -39,6 +39,16 @@ public class RunModeService : IRunModeService
 
     private bool _wasActivateOnLaunchEnabled;
 
+    // Captured by CaptureReinstateSnapshot() just before TryStart's sweep, replayed by Reinstate()
+    // when Stop() is called - so options the sweep turned off come back on their own instead of
+    // needing a save reload or a manual re-tick.
+    private List<int> _reinstateDebugFlagOffsets = [];
+    private List<bool> _reinstateCharacterFlags = [];
+    private float? _reinstateGameSpeed;
+    private float? _reinstatePlayerSpeed;
+    private List<(long Address, int Length)> _reinstateNops = [];
+    private List<(nint CodeLoc, nint Origin, byte[] OriginalBytes)> _reinstateHooks = [];
+
     public RunModeService(IMemoryService memoryService, HookManager hookManager, NopManager nopManager,
         IPlayerService playerService, IUtilityService utilityService, ITargetService targetService,
         IReminderService reminderService, HotkeyManager hotkeyManager,
@@ -150,6 +160,7 @@ public class RunModeService : IRunModeService
         failureReason = string.Empty;
         if (IsActive) return true;
 
+        CaptureReinstateSnapshot();
         RevertGameChanges(keepLegalOptions: true);
 
         var remaining = CountActiveChanges();
@@ -174,6 +185,7 @@ public class RunModeService : IRunModeService
         if (!IsActive) return;
 
         IsActive = false;
+        Reinstate();
         _setActivateOnLaunchEnabled(_wasActivateOnLaunchEnabled);
         if (SettingsManager.Default.EnableHotkeys) _hotkeyManager.Start();
 
@@ -307,6 +319,100 @@ public class RunModeService : IRunModeService
         _targetService.ToggleAiFreeze(false);
         _targetService.ToggleNoAttack(false);
         _targetService.ToggleNoMove(false);
+    }
+
+    /// <summary>
+    /// Same options as ResetCharacterBitFlags, paired with their getters. Backs both
+    /// CaptureReinstateSnapshot and Reinstate, so add a bit-flag option to both methods together.
+    /// </summary>
+    private IReadOnlyList<(Func<bool> IsEnabled, Action<bool> Toggle)> CharacterBitFlagOptions =>
+    [
+        (_playerService.IsPlayerNoDamageEnabled, _playerService.TogglePlayerNoDamage),
+        (_targetService.IsNoDamageEnabled, _targetService.ToggleNoDamage),
+        (_targetService.IsNoDeathEnabled, _targetService.ToggleNoDeath),
+        (_targetService.IsNoPostureBuildupEnabled, _targetService.ToggleNoPostureBuildup),
+        (_targetService.IsAiFreezeEnabled, _targetService.ToggleAiFreeze),
+        (_targetService.IsNoAttackEnabled, _targetService.ToggleNoAttack),
+        (_targetService.IsNoMoveEnabled, _targetService.ToggleNoMove)
+    ];
+
+    /// <summary>
+    /// Snapshots exactly what RevertGameChanges is about to turn off, read straight from game
+    /// memory/the hook and nop registries rather than from any ViewModel - keeping the same
+    /// isolation the rest of this class relies on. Called right before the sweep in TryStart.
+    /// </summary>
+    private void CaptureReinstateSnapshot()
+    {
+        _reinstateDebugFlagOffsets = [];
+        _reinstateCharacterFlags = [];
+        _reinstateGameSpeed = null;
+        _reinstatePlayerSpeed = null;
+        _reinstateNops = [];
+        _reinstateHooks = [];
+
+        if (!_memoryService.IsAttached) return;
+
+        if (DebugFlags.Base != IntPtr.Zero)
+            _reinstateDebugFlagOffsets = DebugFlagOffsets
+                .Where(offset => _memoryService.Read<byte>(DebugFlags.Base + offset) != 0)
+                .ToList();
+
+        _reinstateCharacterFlags = CharacterBitFlagOptions.Select(option => option.IsEnabled()).ToList();
+
+        var gameSpeed = _utilityService.GetGameSpeed();
+        if (gameSpeed > 0f && Math.Abs(gameSpeed - 1f) > 0.001f) _reinstateGameSpeed = gameSpeed;
+
+        var playerSpeed = _playerService.GetPlayerSpeed();
+        if (playerSpeed > 0f && Math.Abs(playerSpeed - 1f) > 0.001f) _reinstatePlayerSpeed = playerSpeed;
+
+        foreach (var key in _nopManager.InstalledNopKeys.Where(key => !LegalNopKeys.Contains(key)))
+            if (_nopManager.TryGetNopLength(key, out var length))
+                _reinstateNops.Add((key, length));
+
+        foreach (var key in _hookManager.InstalledHookKeys.Where(key => !LegalHookKeys.Contains(key)))
+            if (_hookManager.TryGetHookInstallData(key, out var origin, out var originalBytes))
+                _reinstateHooks.Add((key, origin, originalBytes));
+    }
+
+    /// <summary>
+    /// Turns back on whatever CaptureReinstateSnapshot recorded as active right before the sweep.
+    /// Called from Stop() so the checkboxes - which the sweep never touches, since they stay
+    /// bound to ViewModel properties this class doesn't reach - stop lying about the actual
+    /// in-game state once run mode ends.
+    /// </summary>
+    private void Reinstate()
+    {
+        if (!_memoryService.IsAttached) return;
+
+        try
+        {
+            Log("reinstating debug flags");
+            foreach (var offset in _reinstateDebugFlagOffsets)
+                _memoryService.Write(DebugFlags.Base + offset, (byte)1);
+
+            Log("reinstating character bit flags");
+            var options = CharacterBitFlagOptions;
+            for (var i = 0; i < options.Count && i < _reinstateCharacterFlags.Count; i++)
+                if (_reinstateCharacterFlags[i]) options[i].Toggle(true);
+
+            Log("reinstating speeds");
+            if (_reinstateGameSpeed is { } gameSpeed) _utilityService.SetGameSpeed(gameSpeed);
+            if (_reinstatePlayerSpeed is { } playerSpeed) _playerService.SetSpeed(playerSpeed);
+
+            Log("reinstating nops");
+            foreach (var (address, length) in _reinstateNops)
+                _nopManager.InstallNop(address, length);
+
+            Log("reinstating hooks");
+            foreach (var (codeLoc, origin, originalBytes) in _reinstateHooks)
+                _hookManager.InstallHook(codeLoc, origin, originalBytes);
+
+            Log("reinstate complete");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($@"RunModeService reinstate failed: {e.Message}");
+        }
     }
 
     private void ResetSpeeds()
