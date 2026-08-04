@@ -94,17 +94,27 @@ public class RunModeService : IRunModeService
         {
             // Order matters. The snake loop runs as a thread inside the code cave, so it has to be
             // out before anything unhooks or frees what it is executing.
+            // Each step is logged: every write here goes into a live game process, so when one of
+            // them kills the game the log is the only way to know which.
+            Log("stopping snake loop");
             StopSnakeCanyonLoop();
+            Log("resetting debug flags");
             ResetDebugFlags();
+            Log("resetting speeds");
             ResetSpeeds();
+            Log("restoring patches");
             RestorePatches(keepLegalOptions);
+            Log("restoring nops");
             RestoreNops(keepLegalOptions);
+            Log("uninstalling hooks");
             UninstallHooks(keepLegalOptions);
 
             // Last: the reminder marks that behaviour-tampering features were on, and by this point
             // they are off. Re-swapped by the ViewModels on the next Loaded if anything is still
             // ticked, which is why OnGameLoaded re-runs the whole revert.
+            Log("restoring idol icon");
             _reminderService.RestoreIdolIcon();
+            Log("revert complete");
         }
         catch (Exception e)
         {
@@ -152,6 +162,8 @@ public class RunModeService : IRunModeService
     #endregion
 
     #region Private Methods
+
+    private static void Log(string step) => Console.WriteLine($@"RunModeService: {step}");
 
     private void OnGameLoaded()
     {
@@ -231,30 +243,44 @@ public class RunModeService : IRunModeService
     {
         if (!keepLegalOptions)
         {
-            RestorePatch(Patches.NoLogo, OriginalBytesByPatch.NoLogo.GetOriginal);
-            RestorePatch(Patches.MenuTutorialSkip, OriginalBytesByPatch.MenuTutorialSkip.GetOriginal);
-            RestorePatch(Patches.ShowSmallHintBox, OriginalBytesByPatch.ShowSmallHintBox.GetOriginal);
-            RestorePatch(Patches.ShowTutorialText, OriginalBytesByPatch.ShowTutorialText.GetOriginal);
-            RestorePatch(Patches.DefaultSoundVolWrite + OriginalBytesByPatch.DefaultSoundVol.Offset,
-                OriginalBytesByPatch.DefaultSoundVol.GetOriginal);
+            RestorePatch(Patches.NoLogo, [0xEB], OriginalBytesByPatch.NoLogo.GetOriginal);
+            RestorePatch(Patches.MenuTutorialSkip, [0x90, 0x90, 0x90, 0x90],
+                OriginalBytesByPatch.MenuTutorialSkip.GetOriginal);
+            RestorePatch(Patches.ShowSmallHintBox, [0x90, 0x90, 0x90, 0x90, 0x90],
+                OriginalBytesByPatch.ShowSmallHintBox.GetOriginal);
+            RestorePatch(Patches.ShowTutorialText, [0x90, 0x90, 0x90, 0x90, 0x90],
+                OriginalBytesByPatch.ShowTutorialText.GetOriginal);
+
+            // Default sound volume is deliberately not reverted: the patched bytes are the user's
+            // chosen volume, so there is no fixed pattern to recognise, and leaving a sound volume
+            // immediate alone is harmless.
         }
 
-        RestorePatch(Patches.EventView, OriginalBytesByPatch.EventView.GetOriginal);
-        RestorePatch(Patches.PlayerSoundView, OriginalBytesByPatch.PlayerSoundView.GetOriginal);
-        RestorePatch(Patches.SaveInCombat, OriginalBytesByPatch.SaveInCombat.GetOriginal);
+        RestorePatch(Patches.EventView, [0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90],
+            OriginalBytesByPatch.EventView.GetOriginal);
+        RestorePatch(Patches.PlayerSoundView, [0x75], OriginalBytesByPatch.PlayerSoundView.GetOriginal);
+        RestorePatch(Patches.SaveInCombat, [0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90],
+            OriginalBytesByPatch.SaveInCombat.GetOriginal);
     }
 
     /// <summary>
-    /// Writing the original bytes is idempotent, so this needs no record of whether the patch was
-    /// ever applied. Skips unresolved addresses, and swallows the version-switch throw that some
-    /// GetOriginal arms can produce on an unrecognised game version.
+    /// Restores a patch only when the bytes at the address are exactly what the tool writes when it
+    /// applies that patch. Several of the "original" byte strings carry hardcoded jump displacements
+    /// and have no version switch, so writing one blindly over a patch this session never applied can
+    /// corrupt live game code - which crashed the game on the first version of this sweep. Matching
+    /// the patched pattern first makes the revert evidence-based: if the pattern is not there, either
+    /// the patch was never applied or these bytes are wrong for this game version, and both mean
+    /// "leave it alone".
     /// </summary>
-    private void RestorePatch(nint address, Func<byte[]> getOriginal)
+    private void RestorePatch(nint address, byte[] patchedBytes, Func<byte[]> getOriginal)
     {
         if (address == IntPtr.Zero) return;
 
         try
         {
+            var current = _memoryService.ReadBytes(address, patchedBytes.Length);
+            if (!current.SequenceEqual(patchedBytes)) return;
+
             _memoryService.WriteBytes(address, getOriginal());
         }
         catch (Exception e)
