@@ -15,6 +15,7 @@ public enum AsmScript
     GiveItem,
     GiveSkillsAndPros,
     RemoveItem,
+    HasItem,
     Warp,
     WarpCoordWrite,
     WarpAngleWrite,

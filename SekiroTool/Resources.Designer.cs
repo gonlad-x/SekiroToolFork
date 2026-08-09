@@ -787,7 +787,25 @@ namespace SekiroTool {
                 return ResourceManager.GetString("RemoveItem", resourceCulture);
             }
         }
-        
+
+        /// <summary>
+        ///   Looks up a localized string similar to the HasItem asm script bytes.
+        /// </summary>
+        internal static string HasItem {
+            get {
+                return ResourceManager.GetString("HasItem", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to the Emma/Isshin Ashina fight prerequisite flags CSV.
+        /// </summary>
+        internal static string EmmaIsshinFightFlags {
+            get {
+                return ResourceManager.GetString("EmmaIsshinFightFlags", resourceCulture);
+            }
+        }
+
         /// <summary>
         ///   Looks up a localized string similar to 48 83 ec 28             sub    rsp,0x28
         ///48 b9 00 00 00 00 00    movabs rcx,0x0

@@ -150,6 +150,29 @@ public class DataLoader
         return idolEventIds;
     }
 
+    public static List<(string Boss, long Flag)> GetEmmaIsshinFightFlags()
+    {
+        List<(string Boss, long Flag)> flags = new List<(string, long)>();
+        string csvData = Resources.EmmaIsshinFightFlags;
+
+        if (string.IsNullOrWhiteSpace(csvData)) return flags;
+
+        using StringReader reader = new StringReader(csvData);
+        string line = reader.ReadLine(); // header row
+        while ((line = reader.ReadLine()) != null)
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            string[] parts = line.Split(',');
+            string boss = parts[0].Trim();
+            long flag = long.Parse(parts[3].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture);
+
+            flags.Add((boss, flag));
+        }
+
+        return flags;
+    }
+
     public static List<Item> GetItemList(string listName, short itemType)
     {
         List<Item> itemList = new List<Item>();

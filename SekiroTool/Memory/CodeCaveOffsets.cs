@@ -13,6 +13,7 @@ public static class CodeCaveOffsets
     public const int ItemGiveCode = 0x120;
 
     public const int GetEventResult = 0x180;
+    public const int HasItemResult = 0x1810; // 4 bytes
 
     public const int SavePos1 = 0x190;
     public const int SavePos2 = 0x1A0;

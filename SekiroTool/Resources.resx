@@ -418,6 +418,20 @@ e9 00 ff ff ff          jmp    0 &lt;_main&gt;
 000000000100 &lt;exit&gt;:
 c3                      ret</value>
     </data>
+    <data name="EmmaIsshinFightFlags" xml:space="preserve">
+        <value>Boss,Area,MapFile,DefeatFlag,EntityID
+Chained Ogre (Ashina Outskirts),Ashina Outskirts,m11_00_00_00,11100310,1100310
+Gyoubu Masataka Oniwa,Ashina Outskirts,m11_00_00_00,9301,1100800
+Blazing Bull,Ashina Castle,m11_01_00_00,11110440,1110440
+Long-arm Centipede Giraffe,Sunken Valley,m17_00_00_00,11700425,1700425
+Armored Warrior,Senpou Temple,m20_00_00_00,12000400,2000400
+Genichiro Ashina,Ashina Castle,m11_01_00_00,9303,1110801
+Mist Noble,Mibu Village,m15_00_00_00,9380,1500200
+Snake Eyes Shirahagi,Sunken Valley,m17_00_00_00,11700201,1700201
+Guardian Ape,Sunken Valley,m17_00_00_00,9304,1700800
+Corrupted Monk (Spirit),Mibu Village,m15_00_00_00,9306,1500800
+Folding Screen Monkeys,Senpou Temple,m20_00_00_00,9305,2000800</value>
+    </data>
     <data name="Warps" xml:space="preserve">
         <value>Ashina Outskirts,Dilapidated Temple,1101950
 Ashina Outskirts,Ashina Outskirts,1101956
@@ -1340,6 +1354,26 @@ ff d0                   call   rax
 00 00 00
 ff d0                   call   rax
 48 83 c4 38             add    rsp,0x38
+c3                      ret</value>
+    </data>
+    <data name="HasItem" xml:space="preserve">
+        <value>48 a1 00 00 00 00 00    movabs rax,ds:0x0
+00 00 00
+48 8b 40 08             mov    rax,QWORD PTR [rax+0x8]
+48 8b 98 b0 05 00 00    mov    rbx,QWORD PTR [rax+0x5b0]
+48 89 d9                mov    rcx,rbx
+48 b8 00 00 00 00 00    movabs rax,0x0
+00 00 00
+48 83 ec 38             sub    rsp,0x38
+89 44 24 10             mov    DWORD PTR [rsp+0x10],eax
+48 8d 54 24 10          lea    rdx,[rsp+0x10]
+48 b8 00 00 00 00 00    movabs rax,0x0
+00 00 00
+ff d0                   call   rax
+48 83 c4 38             add    rsp,0x38
+48 b9 00 00 00 00 00    movabs rcx,0x0
+00 00 00
+89 01                   mov    DWORD PTR [rcx],eax
 c3                      ret</value>
     </data>
     <data name="DragonActCombo" xml:space="preserve">

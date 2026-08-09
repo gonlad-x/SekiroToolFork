@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using SekiroTool.Core;
@@ -49,9 +50,10 @@ public class EventViewModel : BaseViewModel
         SetInvasionCommand = new DelegateCommand(SetInvasion);
         SetAshinaNightCommand = new DelegateCommand(SetAshinaNight);
         SetHeadlessApeCommand = new DelegateCommand(SetHeadlessApe);
-        
+        TriggerEmmaIsshinFightCommand = new DelegateCommand(TriggerEmmaIsshinFight);
+
     }
-    
+
     #region Commands
 
     public ICommand SetEventCommand { get; set; }
@@ -68,8 +70,9 @@ public class EventViewModel : BaseViewModel
     public ICommand SetInvasionCommand { get; set; }
     public ICommand SetAshinaNightCommand { get; set; }
     public ICommand SetHeadlessApeCommand { get; set; }
-    
-    
+    public ICommand TriggerEmmaIsshinFightCommand { get; set; }
+
+
 
     #endregion
 
@@ -514,11 +517,58 @@ public class EventViewModel : BaseViewModel
         _eventService.SetEvent(GameEvent.AshinaCastleFire, isOn);
     }
 
-    private void SetHeadlessApe(object parameter)=> 
+    private void SetHeadlessApe(object parameter)=>
         _eventService.SetEvent(GameEvent.HeadlessApe, Convert.ToBoolean(parameter));
 
-    
-    
-   
+    // Prerequisite items for the Emma / Isshin Ashina (Shura route) fight. IDs/types confirmed by the user.
+    private static readonly Item LotusOfThePalace = new("Lotus of the Palace", 2500, 0x4000, 1, "Goods");
+    private static readonly Item ShelterStone = new("Shelter Stone", 2501, 0x4000, 1, "Goods");
+    private static readonly Item MortalBlade = new("Mortal Blade", 2400, 0x4000, 1, "Goods");
+
+    private void TriggerEmmaIsshinFight()
+    {
+        var missingFlags = DataLoader.GetEmmaIsshinFightFlags()
+            .Where(f => !_eventService.GetEvent(f.Flag))
+            .ToList();
+
+        var requiredItems = new[] { LotusOfThePalace, ShelterStone, MortalBlade };
+        var missingItems = requiredItems.Where(item => !_itemService.HasItem(item.ItemId, item.ItemType)).ToList();
+
+        if (missingFlags.Count == 0 && missingItems.Count == 0)
+        {
+            MsgBox.Show(
+                "All prerequisites are already met. Warp to the Emma / Isshin Ashina arena to trigger the fight.",
+                "Ready");
+            return;
+        }
+
+        var lines = new List<string>();
+        if (missingFlags.Count > 0)
+        {
+            lines.Add("Missing boss defeat flags:");
+            lines.AddRange(missingFlags.Select(f => $"  - {f.Boss} ({f.Flag})"));
+        }
+
+        if (missingItems.Count > 0)
+        {
+            if (lines.Count > 0) lines.Add("");
+            lines.Add("Missing items:");
+            lines.AddRange(missingItems.Select(i => $"  - {i.Name}"));
+        }
+
+        lines.Add("");
+        lines.Add("Set these now?");
+
+        if (!MsgBox.ShowOkCancel(string.Join("\n", lines), "Missing Prerequisites")) return;
+
+        foreach (var flag in missingFlags)
+            _eventService.SetEvent(flag.Flag, true);
+
+        foreach (var item in missingItems)
+            _itemService.SpawnItem(item, 1);
+
+        MsgBox.Show("Prerequisites set. Warp to the Emma / Isshin Ashina arena to trigger the fight.", "Done");
+    }
+
     #endregion
 }

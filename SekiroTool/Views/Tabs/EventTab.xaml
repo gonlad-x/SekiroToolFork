@@ -182,6 +182,11 @@
                                 Content="Move Isshin To Castle"
                                 Margin="0,0,0,5" />
 
+                        <Button Command="{Binding TriggerEmmaIsshinFightCommand}"
+                                IsEnabled="{Binding AreOptionsEnabled}"
+                                Content="Trigger Owl on Ashina Castle"
+                                Margin="0,0,0,5" />
+
                         <TextBlock Text="All of the Below Require Reloading Area"
                                    Foreground="Gold"
                                    FontWeight="Bold"
