@@ -74,6 +74,7 @@ public class SettingsViewModel : BaseViewModel
                 new("Increase Damage Multiplier", HotkeyActions.IncreaseDamageMultiplier),
                 new("Decrease Damage Multiplier", HotkeyActions.DecreaseDamageMultiplier),
                 new("Toggle Damage Multiplier", HotkeyActions.ToggleDamageMultiplier),
+                new("Max HP", HotkeyActions.SetMaxHp),
             ],
             ["Enemies"] =
             [
@@ -104,6 +105,25 @@ public class SettingsViewModel : BaseViewModel
             ],
             ["Event"] =
             [
+                new("Move Isshin To Castle", HotkeyActions.MoveIsshinToCastle),
+                new("Move Owl To Castle", HotkeyActions.TriggerOwlOnAshinaCastle),
+            ],
+            ["Travel"] =
+            [
+                // Warps to the boss's exact captured arena location (see the "Boss" area in the Idols
+                // sub-tab), not an idol.
+                new("Warp: Ogre (Outskirts)", HotkeyActions.WarpOgreOutskirts),
+                new("Warp: Gyoubu", HotkeyActions.WarpGyoubu),
+                new("Warp: Blazing Bull", HotkeyActions.WarpBlazingBull),
+                new("Warp: Genichiro (Castle)", HotkeyActions.WarpGenichiroCastle),
+                new("Warp: Armored Warrior", HotkeyActions.WarpArmoredWarrior),
+                new("Warp: Centipede (Gun Fort)", HotkeyActions.WarpCentipedeGunFort),
+                new("Warp: Snake Eyes (Poison Pool)", HotkeyActions.WarpSnakeEyesPoisonPool),
+                new("Warp: Guardian Ape", HotkeyActions.WarpGuardianApe),
+                new("Warp: Mist Noble", HotkeyActions.WarpMistNoble),
+                new("Warp: Fake Monk", HotkeyActions.WarpFakeMonk),
+                new("Warp: Monkeys", HotkeyActions.WarpMonkeys),
+                new("Warp: Emma / Isshin", HotkeyActions.WarpEmmaIsshin),
             ],
             ["Target"] =
             [

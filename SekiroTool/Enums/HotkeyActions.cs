@@ -88,6 +88,21 @@ public enum HotkeyActions
     DemonBellOff,
     NoKurosCharmOn,
     NoKurosCharmOff,
+    MoveIsshinToCastle,
+    TriggerOwlOnAshinaCastle,
+
+    WarpOgreOutskirts,
+    WarpGyoubu,
+    WarpBlazingBull,
+    WarpGenichiroCastle,
+    WarpArmoredWarrior,
+    WarpCentipedeGunFort,
+    WarpSnakeEyesPoisonPool,
+    WarpGuardianApe,
+    WarpMistNoble,
+    WarpFakeMonk,
+    WarpMonkeys,
+    WarpEmmaIsshin,
 
     SetNewGame7,
 

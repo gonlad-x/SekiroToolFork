@@ -244,7 +244,27 @@ public class TravelViewModel : BaseViewModel
 
     private void RegisterHotkeys()
     {
-        
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpOgreOutskirts, () => WarpToBoss("Ogre (Outskirts)"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpGyoubu, () => WarpToBoss("Gyoubu"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpBlazingBull, () => WarpToBoss("Bull"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpGenichiroCastle, () => WarpToBoss("Geni (Castle)"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpArmoredWarrior, () => WarpToBoss("Armored Warrior"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpCentipedeGunFort, () => WarpToBoss("Centipede (Gun Fort)"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpSnakeEyesPoisonPool, () => WarpToBoss("Shirahagi (Poison Pool)"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpGuardianApe, () => WarpToBoss("Guardian Ape"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpMistNoble, () => WarpToBoss("Mist Noble"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpFakeMonk, () => WarpToBoss("Fake Monk"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpMonkeys, () => WarpToBoss("Monkeys"));
+        _hotkeyManager.RegisterAction(HotkeyActions.WarpEmmaIsshin, () => WarpToBoss("Emma & Isshin"));
+    }
+
+    // Looks up a warp by name within the built-in "Boss" area (see the Warps CSV resource) and warps
+    // to its exact captured coordinates -- not an idol. Used by the fixed Travel hotkey category below.
+    private void WarpToBoss(string name)
+    {
+        var warp = _allWarps.FirstOrDefault(w => w.MainArea == "Boss" && w.Name == name);
+        if (warp == null) return;
+        _ = Task.Run(() => _travelService.Warp(warp));
     }
 
     private void OnGameLoaded()

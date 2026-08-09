@@ -430,7 +430,8 @@ Mist Noble,Mibu Village,m15_00_00_00,9380,1500200
 Snake Eyes Shirahagi,Sunken Valley,m17_00_00_00,11700201,1700201
 Guardian Ape,Sunken Valley,m17_00_00_00,9304,1700800
 Corrupted Monk (Spirit),Mibu Village,m15_00_00_00,9306,1500800
-Folding Screen Monkeys,Senpou Temple,m20_00_00_00,9305,2000800</value>
+Folding Screen Monkeys,Senpou Temple,m20_00_00_00,9305,2000800
+Isshin Moved To Castle,Ashina Castle,,71100500,</value>
     </data>
     <data name="Warps" xml:space="preserve">
         <value>Ashina Outskirts,Dilapidated Temple,1101950

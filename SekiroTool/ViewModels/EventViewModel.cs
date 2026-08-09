@@ -289,6 +289,8 @@ public class EventViewModel : BaseViewModel
         _hotkeyManager.RegisterAction(HotkeyActions.DemonBellOff, () => SetDemonBell(false));
         _hotkeyManager.RegisterAction(HotkeyActions.NoKurosCharmOn, () => SetNoKurosCharm(true));
         _hotkeyManager.RegisterAction(HotkeyActions.NoKurosCharmOff, () => SetNoKurosCharm(false));
+        _hotkeyManager.RegisterAction(HotkeyActions.MoveIsshinToCastle, MoveIsshinToCastle);
+        _hotkeyManager.RegisterAction(HotkeyActions.TriggerOwlOnAshinaCastle, TriggerEmmaIsshinFight);
     }
     
     private void OnGameLoaded()

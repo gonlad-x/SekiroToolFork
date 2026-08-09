@@ -6,3 +6,4 @@ riderModule.iml
 .vs/
 *.xsd
 resources/
+*_wpftmp.csproj
